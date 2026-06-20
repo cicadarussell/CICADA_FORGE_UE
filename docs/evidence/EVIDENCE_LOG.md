@@ -104,6 +104,33 @@ LOG: Phase 002D persistent project state loaded.
 
 ## Phase 002E - Safe Action Button Stubs
 
+Date: 2026-06-21
+
+Verdict:
+
+- [x] PASS
+
+Notes:
+
+```text
+User clicked all four buttons.
+Output Log showed safe stub clicked messages for:
+New design
+Open feature graph
+Run validation
+Export proof receipt
+```
+
+Also observed:
+
+```text
+DerivedDataCache maintenance finished and deleted 0 files. This is normal Unreal cache housekeeping.
+```
+
+---
+
+## Phase 002F - Visible Selected Action State
+
 Date:
 
 Commit hash:
@@ -111,9 +138,9 @@ Commit hash:
 ## Files checked
 
 - [ ] `Config/CICADAForgeState.ini`
+- [ ] `Plugins/CICADAForge/Source/CICADAForgeEditor/Private/CICADAForgeProjectState.cpp`
 - [ ] `Plugins/CICADAForge/Source/CICADAForgeEditor/Private/CICADAForgeEditorModule.cpp`
-- [ ] `Plugins/CICADAForge/Source/CICADAForgeEditor/Private/CICADAForgeStatusModel.cpp`
-- [ ] `docs/checklists/PHASE_002E_SMOKE_TEST.md`
+- [ ] `docs/checklists/PHASE_002F_SMOKE_TEST.md`
 
 ## Unreal open result
 
@@ -131,11 +158,13 @@ Notes:
 
 ## Button result
 
-- [ ] Button shows `New design`.
-- [ ] Button shows `Open feature graph`.
-- [ ] Button shows `Run validation`.
-- [ ] Button shows `Export proof receipt`.
-- [ ] Clicking buttons logs `CICADA Forge safe action stub clicked:`.
+- [ ] Initial text shows `Selected action: none`.
+- [ ] Clicking New design visibly updates selected-action text.
+- [ ] Clicking Open feature graph visibly updates selected-action text.
+- [ ] Clicking Run validation visibly updates selected-action text.
+- [ ] Clicking Export proof receipt visibly updates selected-action text.
+- [ ] Output Log still logs `CICADA Forge safe action stub clicked:`.
+- [ ] Non-normalized config path warning is gone or reduced.
 - [ ] No CAD export occurred.
 - [ ] No machine command occurred.
 

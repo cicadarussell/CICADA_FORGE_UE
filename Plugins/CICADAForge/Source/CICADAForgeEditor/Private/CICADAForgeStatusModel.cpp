@@ -27,7 +27,7 @@ FCICADAForgeStatusModel FCICADAForgeStatusModel::MakeFromProjectState(const FCIC
 
     Model.BottomLog = FText::FromString(
         FString::Printf(
-            TEXT("LOG: Phase 002E action button stubs loaded. Last run: %s"),
+            TEXT("LOG: Phase 002F selected action state is visible. Last run: %s"),
             *ProjectState.LastRunState
         )
     );
@@ -49,7 +49,7 @@ FCICADAForgeStatusModel FCICADAForgeStatusModel::MakeFromProjectState(const FCIC
 
     Model.WorkspaceCards.Add(FCICADAForgePanelCard{
         NSLOCTEXT("CICADAForgeStatusModel", "GateCardTitle", "Current Gate"),
-        NSLOCTEXT("CICADAForgeStatusModel", "GateCardBody", "Gate: prove action buttons exist and only log safe stub events. No CAD export, no machine control, no sidecar calls in this phase.")
+        NSLOCTEXT("CICADAForgeStatusModel", "GateCardBody", "Gate: prove action button clicks update visible UI state as well as Output Log. No CAD export, no machine control, no sidecar calls in this phase.")
     });
 
     Model.StatusCards.Add(FCICADAForgePanelCard{

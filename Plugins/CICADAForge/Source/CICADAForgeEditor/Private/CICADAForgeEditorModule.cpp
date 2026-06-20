@@ -48,7 +48,7 @@ namespace CICADAForgeEditorUI
             ];
     }
 
-    static TSharedRef<SWidget> MakeActionButton(const FText& Label)
+    static TSharedRef<SWidget> MakeActionButton(const FText& Label, const TSharedRef<STextBlock>& VisibleActionStatus)
     {
         return SNew(SButton)
             .Text(FText::Format(
@@ -58,16 +58,27 @@ namespace CICADAForgeEditorUI
             .ToolTipText(NSLOCTEXT(
                 "CICADAForgeEditorUI",
                 "StubButtonTooltip",
-                "Safe stub only. This logs an action and does not modify files, export CAD, or command machines."
+                "Safe stub only. This updates visible action state, logs an action, and does not modify files, export CAD, or command machines."
             ))
-            .OnClicked_Lambda([Label]()
+            .OnClicked_Lambda([Label, VisibleActionStatus]()
             {
+                const FText NewStatus = FText::Format(
+                    NSLOCTEXT(
+                        "CICADAForgeEditorUI",
+                        "SelectedActionFormat",
+                        "Selected action: {0} - safe stub only"
+                    ),
+                    Label
+                );
+
+                VisibleActionStatus->SetText(NewStatus);
+
                 UE_LOG(LogCICADAForgeEditor, Display, TEXT("CICADA Forge safe action stub clicked: %s"), *Label.ToString());
                 return FReply::Handled();
             });
     }
 
-    static TSharedRef<SWidget> MakeActionList(const TArray<FText>& Actions)
+    static TSharedRef<SWidget> MakeActionList(const TArray<FText>& Actions, const TSharedRef<STextBlock>& VisibleActionStatus)
     {
         TSharedRef<SVerticalBox> ActionBox = SNew(SVerticalBox);
 
@@ -77,7 +88,7 @@ namespace CICADAForgeEditorUI
             .AutoHeight()
             .Padding(0, 0, 0, 6)
             [
-                MakeActionButton(Action)
+                MakeActionButton(Action, VisibleActionStatus)
             ];
         }
 
@@ -101,7 +112,7 @@ namespace CICADAForgeEditorUI
         return CardBox;
     }
 
-    static TSharedRef<SWidget> MakeLeftRail(const FCICADAForgeStatusModel& Model)
+    static TSharedRef<SWidget> MakeLeftRail(const FCICADAForgeStatusModel& Model, const TSharedRef<STextBlock>& VisibleActionStatus)
     {
         return SNew(SBorder)
             .Padding(10)
@@ -138,7 +149,18 @@ namespace CICADAForgeEditorUI
                 + SVerticalBox::Slot()
                 .AutoHeight()
                 [
-                    MakeActionList(Model.ProjectActions)
+                    MakeActionList(Model.ProjectActions, VisibleActionStatus)
+                ]
+
+                + SVerticalBox::Slot()
+                .AutoHeight()
+                .Padding(0, 12, 0, 0)
+                [
+                    SNew(SBorder)
+                    .Padding(8)
+                    [
+                        VisibleActionStatus
+                    ]
                 ]
             ];
     }
@@ -256,6 +278,15 @@ TSharedRef<SDockTab> FCICADAForgeEditorModule::SpawnForgeTab(const FSpawnTabArgs
 {
     const FCICADAForgeStatusModel Model = FCICADAForgeStatusModel::MakePhase002DDefault();
 
+    TSharedRef<STextBlock> VisibleActionStatus =
+        SNew(STextBlock)
+        .Text(NSLOCTEXT(
+            "CICADAForgeEditorUI",
+            "InitialActionStatus",
+            "Selected action: none"
+        ))
+        .AutoWrapText(true);
+
     return SNew(SDockTab)
         .TabRole(ETabRole::NomadTab)
         [
@@ -291,7 +322,7 @@ TSharedRef<SDockTab> FCICADAForgeEditorModule::SpawnForgeTab(const FSpawnTabArgs
                     .FillWidth(0.22f)
                     .Padding(0, 0, 8, 0)
                     [
-                        CICADAForgeEditorUI::MakeLeftRail(Model)
+                        CICADAForgeEditorUI::MakeLeftRail(Model, VisibleActionStatus)
                     ]
 
                     + SHorizontalBox::Slot()

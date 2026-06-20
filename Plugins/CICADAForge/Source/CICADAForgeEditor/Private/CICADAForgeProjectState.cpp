@@ -9,11 +9,11 @@ FCICADAForgeProjectState FCICADAForgeProjectState::MakeDefault()
 
     State.ProjectName = TEXT("CICADA_FORGE_UE");
     State.RepoPath = TEXT("C:\\CICADA\\CICADA_APPS\\CICADA_FORGE_UE");
-    State.CurrentPhase = TEXT("Phase 002D: persistent project state feeds the shell");
-    State.EvidenceState = TEXT("Manual evidence logging active");
+    State.CurrentPhase = TEXT("Phase 002F: selected action state updates on screen");
+    State.EvidenceState = TEXT("Phase 002E buttons clicked and logged safely");
     State.CadSidecarState = TEXT("Offline - Phase 005 target");
     State.MachineBridgeState = TEXT("Locked - no physical machine commands in V0 shell");
-    State.LastRunState = TEXT("Phase 002C passed by user screenshot");
+    State.LastRunState = TEXT("Phase 002E passed by output log");
     State.bMachineCommandsLocked = true;
 
     return State;
@@ -23,7 +23,8 @@ FCICADAForgeProjectState FCICADAForgeProjectState::LoadFromConfig()
 {
     FCICADAForgeProjectState State = MakeDefault();
 
-    const FString ConfigPath = FPaths::ProjectConfigDir() / TEXT("CICADAForgeState.ini");
+    const FString RawConfigPath = FPaths::ProjectConfigDir() / TEXT("CICADAForgeState.ini");
+    const FString ConfigPath = FConfigCacheIni::NormalizeConfigIniPath(RawConfigPath);
     const TCHAR* Section = TEXT("CICADAForge.State");
 
     GConfig->GetString(Section, TEXT("ProjectName"), State.ProjectName, ConfigPath);

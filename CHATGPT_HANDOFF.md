@@ -36,7 +36,8 @@ Sidecars handle exact manufacturing:
 - Phase 002B worked by user screenshot: structured cockpit shell.
 - Phase 002C worked by user screenshot: status model fed the shell.
 - Phase 002D worked by user screenshot: persistent project state fed the shell.
-- Current patch is Phase 002E: safe action button stubs.
+- Phase 002E worked by user report: four buttons clicked and logged safe stub actions.
+- Current patch is Phase 002F: visible selected-action state.
 
 ## Standing CICADA app development workflow
 
@@ -57,15 +58,16 @@ Use this pattern for this repo and future CICADA apps:
 If GitHub/local source shows a newer phase but Unreal still displays old UI text:
 
 1. Close Unreal fully.
-2. Delete:
-   - root `Binaries`
-   - root `Intermediate`
-   - root `Saved`
-   - plugin `Plugins/CICADAForge/Binaries`
-   - plugin `Plugins/CICADAForge/Intermediate`
+2. Delete root/plugin `Binaries`, `Intermediate`, and root `Saved`.
 3. Reopen `.uproject`.
 4. Allow one rebuild.
 5. Re-test the tab.
+
+## Current issue fixed in Phase 002F
+
+Unreal logged a `GConfig::Find attempting to access config with non-normalized path` warning for `Config/CICADAForgeState.ini`.
+
+Phase 002F normalizes the config path before calling `GConfig`.
 
 ## Engineering rules
 
@@ -82,15 +84,16 @@ Use truth-first engineering:
 
 ## Immediate next task for future assistant
 
-After Phase 002E is pushed, verify:
+After Phase 002F is pushed, verify:
 
 - `Config/CICADAForgeState.ini`
+- `Plugins/CICADAForge/Source/CICADAForgeEditor/Private/CICADAForgeProjectState.cpp`
 - `Plugins/CICADAForge/Source/CICADAForgeEditor/Private/CICADAForgeEditorModule.cpp`
-- `Plugins/CICADAForge/Source/CICADAForgeEditor/Private/CICADAForgeStatusModel.cpp`
-- `docs/checklists/PHASE_002E_SMOKE_TEST.md`
+- `docs/checklists/PHASE_002F_SMOKE_TEST.md`
 
 Then ask the user for:
-- screenshot of the UI
-- whether clicking buttons writes Output Log lines
+- screenshot showing selected-action text changing
+- whether Output Log still has safe stub click logs
+- whether config warning is gone or reduced
 
-Do not move to Phase 002F until buttons appear and click safely.
+Do not move to Phase 002G until visible selected-action UI works.
