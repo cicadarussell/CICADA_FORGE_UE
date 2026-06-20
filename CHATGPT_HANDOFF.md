@@ -33,7 +33,8 @@ Sidecars handle exact manufacturing:
 - `CICADAForge` runtime module exists.
 - Phase 001B locked the reusable ZIP-to-GitHub app workflow.
 - Phase 002A worked by user screenshot: Unreal opened the CICADA Forge tab and showed `Phase 002A: Forge UI shell is alive.`
-- Current patch is Phase 002B: structured cockpit shell.
+- Phase 002B worked by user screenshot: Unreal opened the structured cockpit shell with project/workspace/status/log panels.
+- Current patch is Phase 002C: status model feeding the shell.
 
 ## Standing CICADA app development workflow
 
@@ -50,6 +51,23 @@ Use this pattern for this repo and future CICADA apps:
 
 This is the default structure until direct repo write automation is available.
 
+## Standing Unreal stale-binary fix
+
+If GitHub/local source shows a newer phase but Unreal still displays old UI text:
+
+1. Close Unreal fully.
+2. Delete:
+   - root `Binaries`
+   - root `Intermediate`
+   - root `Saved`
+   - plugin `Plugins/CICADAForge/Binaries`
+   - plugin `Plugins/CICADAForge/Intermediate`
+3. Reopen `.uproject`.
+4. Allow one rebuild.
+5. Re-test the tab.
+
+This fixed the Phase 002B stale UI issue.
+
 ## Engineering rules
 
 Use truth-first engineering:
@@ -65,12 +83,14 @@ Use truth-first engineering:
 
 ## Immediate next task for future assistant
 
-After Phase 002B is pushed, verify:
+After Phase 002C is pushed, verify:
 
-- `PROJECT_STATUS.md` says Phase 002B.
-- `Plugins/CICADAForge/Source/CICADAForgeEditor/Private/CICADAForgeEditorModule.cpp` contains `Phase 002B: structured cockpit shell is alive.`
-- `docs/checklists/PHASE_002B_SMOKE_TEST.md` exists.
+- `Plugins/CICADAForge/Source/CICADAForgeEditor/Public/CICADAForgeStatusModel.h`
+- `Plugins/CICADAForge/Source/CICADAForgeEditor/Private/CICADAForgeStatusModel.cpp`
+- `Plugins/CICADAForge/Source/CICADAForgeEditor/Private/CICADAForgeEditorModule.cpp`
+- `docs/process/UNREAL_STALE_BINARY_FIX.md`
+- `docs/checklists/PHASE_002C_SMOKE_TEST.md`
 
-Then ask the user for the Unreal structured shell result.
+Then ask the user for the Unreal result.
 
-Do not move to Phase 003 until the structured shell opens or the compile/layout failure is understood.
+Do not move to Phase 003 until the UI reads from the status model or the compile/layout failure is understood.

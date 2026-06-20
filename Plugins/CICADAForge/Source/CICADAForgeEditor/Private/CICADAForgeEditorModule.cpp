@@ -1,5 +1,7 @@
 #include "CICADAForgeEditorModule.h"
 
+#include "CICADAForgeStatusModel.h"
+
 #include "Framework/Docking/TabManager.h"
 #include "Framework/MultiBox/MultiBoxBuilder.h"
 #include "Logging/LogMacros.h"
@@ -44,7 +46,43 @@ namespace CICADAForgeEditorUI
             ];
     }
 
-    static TSharedRef<SWidget> MakeLeftRail()
+    static TSharedRef<SWidget> MakeActionList(const TArray<FText>& Actions)
+    {
+        TSharedRef<SVerticalBox> ActionBox = SNew(SVerticalBox);
+
+        for (const FText& Action : Actions)
+        {
+            ActionBox->AddSlot()
+            .AutoHeight()
+            .Padding(0, 0, 0, 6)
+            [
+                SNew(STextBlock)
+                .Text(Action)
+                .AutoWrapText(true)
+            ];
+        }
+
+        return ActionBox;
+    }
+
+    static TSharedRef<SWidget> MakeCardList(const TArray<FCICADAForgePanelCard>& Cards)
+    {
+        TSharedRef<SVerticalBox> CardBox = SNew(SVerticalBox);
+
+        for (const FCICADAForgePanelCard& Card : Cards)
+        {
+            CardBox->AddSlot()
+            .AutoHeight()
+            .Padding(0, 0, 0, 10)
+            [
+                MakeCard(Card.Title, Card.Body)
+            ];
+        }
+
+        return CardBox;
+    }
+
+    static TSharedRef<SWidget> MakeLeftRail(const FCICADAForgeStatusModel& Model)
     {
         return SNew(SBorder)
             .Padding(10)
@@ -56,7 +94,7 @@ namespace CICADAForgeEditorUI
                 .Padding(0, 0, 0, 10)
                 [
                     SNew(STextBlock)
-                    .Text(LOCTEXT("LeftRailTitle", "PROJECT"))
+                    .Text(Model.LeftRailTitle)
                     .AutoWrapText(true)
                 ]
 
@@ -65,7 +103,7 @@ namespace CICADAForgeEditorUI
                 .Padding(0, 0, 0, 6)
                 [
                     SNew(STextBlock)
-                    .Text(LOCTEXT("ProjectStatus", "CICADA_FORGE_UE"))
+                    .Text(FText::FromString(Model.ProjectName))
                     .AutoWrapText(true)
                 ]
 
@@ -74,48 +112,19 @@ namespace CICADAForgeEditorUI
                 .Padding(0, 0, 0, 16)
                 [
                     SNew(STextBlock)
-                    .Text(LOCTEXT("ProjectPhase", "Phase 002B: structured shell"))
-                    .AutoWrapText(true)
-                ]
-
-                + SVerticalBox::Slot()
-                .AutoHeight()
-                .Padding(0, 0, 0, 6)
-                [
-                    SNew(STextBlock)
-                    .Text(LOCTEXT("ActionNewDesign", "[stub] New design"))
-                    .AutoWrapText(true)
-                ]
-
-                + SVerticalBox::Slot()
-                .AutoHeight()
-                .Padding(0, 0, 0, 6)
-                [
-                    SNew(STextBlock)
-                    .Text(LOCTEXT("ActionOpenGraph", "[stub] Open feature graph"))
-                    .AutoWrapText(true)
-                ]
-
-                + SVerticalBox::Slot()
-                .AutoHeight()
-                .Padding(0, 0, 0, 6)
-                [
-                    SNew(STextBlock)
-                    .Text(LOCTEXT("ActionRunValidation", "[stub] Run validation"))
+                    .Text(Model.PhaseLabel)
                     .AutoWrapText(true)
                 ]
 
                 + SVerticalBox::Slot()
                 .AutoHeight()
                 [
-                    SNew(STextBlock)
-                    .Text(LOCTEXT("ActionExportProof", "[stub] Export proof receipt"))
-                    .AutoWrapText(true)
+                    MakeActionList(Model.ProjectActions)
                 ]
             ];
     }
 
-    static TSharedRef<SWidget> MakeCentreWorkspace()
+    static TSharedRef<SWidget> MakeCentreWorkspace(const FCICADAForgeStatusModel& Model)
     {
         return SNew(SBorder)
             .Padding(12)
@@ -127,42 +136,19 @@ namespace CICADAForgeEditorUI
                 .Padding(0, 0, 0, 12)
                 [
                     SNew(STextBlock)
-                    .Text(LOCTEXT("WorkspaceTitle", "FORGE WORKSPACE"))
+                    .Text(Model.WorkspaceTitle)
                     .AutoWrapText(true)
-                ]
-
-                + SVerticalBox::Slot()
-                .AutoHeight()
-                .Padding(0, 0, 0, 10)
-                [
-                    MakeCard(
-                        LOCTEXT("GraphCardTitle", "Feature Graph Placeholder"),
-                        LOCTEXT("GraphCardBody", "Future home of parametric design intent: dimensions, primitives, operations, constraints, validation state, and export receipts.")
-                    )
-                ]
-
-                + SVerticalBox::Slot()
-                .AutoHeight()
-                .Padding(0, 0, 0, 10)
-                [
-                    MakeCard(
-                        LOCTEXT("ViewportCardTitle", "Preview Placeholder"),
-                        LOCTEXT("ViewportCardBody", "Unreal viewport/preview integration comes later. Manufacturing truth will still come from the feature graph and CAD sidecar, not raw editor mesh vibes.")
-                    )
                 ]
 
                 + SVerticalBox::Slot()
                 .FillHeight(1.0f)
                 [
-                    MakeCard(
-                        LOCTEXT("PhaseGateTitle", "Current Gate"),
-                        LOCTEXT("PhaseGateBody", "Gate: prove structured shell loads. No CAD export, no machine control, no sidecar calls in this phase.")
-                    )
+                    MakeCardList(Model.WorkspaceCards)
                 ]
             ];
     }
 
-    static TSharedRef<SWidget> MakeRightRail()
+    static TSharedRef<SWidget> MakeRightRail(const FCICADAForgeStatusModel& Model)
     {
         return SNew(SBorder)
             .Padding(10)
@@ -174,58 +160,25 @@ namespace CICADAForgeEditorUI
                 .Padding(0, 0, 0, 10)
                 [
                     SNew(STextBlock)
-                    .Text(LOCTEXT("RightRailTitle", "STATUS"))
+                    .Text(Model.StatusTitle)
                     .AutoWrapText(true)
-                ]
-
-                + SVerticalBox::Slot()
-                .AutoHeight()
-                .Padding(0, 0, 0, 10)
-                [
-                    MakeCard(
-                        LOCTEXT("EvidenceCardTitle", "Evidence"),
-                        LOCTEXT("EvidenceCardBody", "Manual evidence logging active. Automated screenshots and receipts are later.")
-                    )
-                ]
-
-                + SVerticalBox::Slot()
-                .AutoHeight()
-                .Padding(0, 0, 0, 10)
-                [
-                    MakeCard(
-                        LOCTEXT("SidecarCardTitle", "CAD Sidecar"),
-                        LOCTEXT("SidecarCardBody", "Offline. Phase 005 target. No requests sent.")
-                    )
-                ]
-
-                + SVerticalBox::Slot()
-                .AutoHeight()
-                .Padding(0, 0, 0, 10)
-                [
-                    MakeCard(
-                        LOCTEXT("MachineCardTitle", "Machine Bridge"),
-                        LOCTEXT("MachineCardBody", "Locked. No physical machine commands exist in V0 shell.")
-                    )
                 ]
 
                 + SVerticalBox::Slot()
                 .FillHeight(1.0f)
                 [
-                    MakeCard(
-                        LOCTEXT("SafetyCardTitle", "Safety Boundary"),
-                        LOCTEXT("SafetyCardBody", "All machine actions require future dry run, preview, explicit approval, and logs.")
-                    )
+                    MakeCardList(Model.StatusCards)
                 ]
             ];
     }
 
-    static TSharedRef<SWidget> MakeBottomLog()
+    static TSharedRef<SWidget> MakeBottomLog(const FCICADAForgeStatusModel& Model)
     {
         return SNew(SBorder)
             .Padding(8)
             [
                 SNew(STextBlock)
-                .Text(LOCTEXT("BottomLogText", "LOG: Phase 002B shell loaded. Next target: live status model and panel data source."))
+                .Text(Model.BottomLog)
                 .AutoWrapText(true)
             ];
     }
@@ -282,6 +235,8 @@ void FCICADAForgeEditorModule::RegisterMenus()
 
 TSharedRef<SDockTab> FCICADAForgeEditorModule::SpawnForgeTab(const FSpawnTabArgs& Args)
 {
+    const FCICADAForgeStatusModel Model = FCICADAForgeStatusModel::MakePhase002CDefault();
+
     return SNew(SDockTab)
         .TabRole(ETabRole::NomadTab)
         [
@@ -304,7 +259,7 @@ TSharedRef<SDockTab> FCICADAForgeEditorModule::SpawnForgeTab(const FSpawnTabArgs
                 .Padding(0, 0, 0, 12)
                 [
                     SNew(STextBlock)
-                    .Text(LOCTEXT("ForgeSubtitle", "Phase 002B: structured cockpit shell is alive."))
+                    .Text(Model.PhaseLabel)
                     .AutoWrapText(true)
                 ]
 
@@ -317,20 +272,20 @@ TSharedRef<SDockTab> FCICADAForgeEditorModule::SpawnForgeTab(const FSpawnTabArgs
                     .FillWidth(0.22f)
                     .Padding(0, 0, 8, 0)
                     [
-                        CICADAForgeEditorUI::MakeLeftRail()
+                        CICADAForgeEditorUI::MakeLeftRail(Model)
                     ]
 
                     + SHorizontalBox::Slot()
                     .FillWidth(0.56f)
                     .Padding(0, 0, 8, 0)
                     [
-                        CICADAForgeEditorUI::MakeCentreWorkspace()
+                        CICADAForgeEditorUI::MakeCentreWorkspace(Model)
                     ]
 
                     + SHorizontalBox::Slot()
                     .FillWidth(0.22f)
                     [
-                        CICADAForgeEditorUI::MakeRightRail()
+                        CICADAForgeEditorUI::MakeRightRail(Model)
                     ]
                 ]
 
@@ -338,7 +293,7 @@ TSharedRef<SDockTab> FCICADAForgeEditorModule::SpawnForgeTab(const FSpawnTabArgs
                 .AutoHeight()
                 .Padding(0, 8, 0, 0)
                 [
-                    CICADAForgeEditorUI::MakeBottomLog()
+                    CICADAForgeEditorUI::MakeBottomLog(Model)
                 ]
             ]
         ];
