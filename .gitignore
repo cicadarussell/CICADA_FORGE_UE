@@ -1,0 +1,48 @@
+# Unreal generated folders
+Binaries/
+DerivedDataCache/
+Intermediate/
+Saved/
+.vs/
+.vscode/.browse.VC.db
+.vscode/.browse.VC.db-wal
+.vscode/.browse.VC.db-shm
+*.sln
+*.VC.db
+*.opensdf
+*.sdf
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# Build artifacts
+Build/Receipts/
+Build/Win64/
+*.target
+*.modules
+
+# Logs and temp
+*.log
+*.tmp
+*.bak
+*.swp
+.DS_Store
+Thumbs.db
+
+# CICADA generated outputs
+exports/
+receipts/
+sidecars/**/venv/
+sidecars/**/.venv/
+sidecars/**/__pycache__/
+sidecars/**/*.pyc
+
+# Keep docs and source
+!README.md
+!PROJECT_STATUS.md
+!CHATGPT_HANDOFF.md
+!MEGA_MASTERPLAN.md
+!docs/**
+!sidecars/**/README.md
+!Plugins/**/README.md

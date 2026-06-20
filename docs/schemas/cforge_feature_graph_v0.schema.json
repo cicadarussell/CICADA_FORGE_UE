@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CICADA Forge Feature Graph V0",
+  "type": "object",
+  "required": [
+    "version",
+    "units",
+    "project_id",
+    "features"
+  ],
+  "properties": {
+    "version": {
+      "const": "0.0.1"
+    },
+    "units": {
+      "const": "mm"
+    },
+    "project_id": {
+      "type": "string"
+    },
+    "features": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "type",
+          "params"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "params": {
+            "type": "object"
+          },
+          "depends_on": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "metadata": {
+            "type": "object"
+          }
+        }
+      }
+    }
+  }
+}
