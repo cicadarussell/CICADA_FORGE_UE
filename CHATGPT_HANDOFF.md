@@ -26,6 +26,34 @@ Sidecars handle exact manufacturing:
 - machine bridge for printers/CNC/robotics
 - evidence logger for screenshots/logs/build proofs
 
+## Current proven state
+
+User reported that Phase 001A worked.
+
+Phase 001A added and pushed:
+
+- `CICADA_FORGE_UE.uproject`
+- `Plugins/CICADAForge/CICADAForge.uplugin`
+- minimal `CICADAForge` runtime C++ module
+- Phase 001 smoke test docs
+
+The next normal technical build is Phase 002A: Forge UI Shell skeleton.
+
+## Standing CICADA app development workflow
+
+Use this pattern for this repo and future CICADA apps:
+
+1. ChatGPT gives a ZIP download link at the top.
+2. ChatGPT gives completion percentages.
+3. User downloads ZIP.
+4. User runs a PowerShell extractor into the local repo root.
+5. User commits and pushes through GitHub Desktop.
+6. ChatGPT reads GitHub and verifies.
+7. User asks for next phase cluster.
+8. Repeat.
+
+This is the default structure until direct repo write automation is available.
+
 ## Engineering rules
 
 Use truth-first engineering:
@@ -43,24 +71,8 @@ Use truth-first engineering:
 
 Open Unreal and use CICADA Forge to create a simple bracket/enclosure feature graph, export STL/STEP through a sidecar, reimport/display it, and record evidence.
 
-## Current phase
-
-Phase Cluster 001A.
-
-This patch adds the first Unreal project file and a minimal C++ plugin skeleton named `CICADAForge`.
-
 ## Immediate next task for future assistant
 
-Verify these files exist in GitHub:
+Verify Phase 001B exists, then begin Phase 002A.
 
-- `CICADA_FORGE_UE.uproject`
-- `Plugins/CICADAForge/CICADAForge.uplugin`
-- `Plugins/CICADAForge/Source/CICADAForge/CICADAForge.Build.cs`
-- `Plugins/CICADAForge/Source/CICADAForge/Public/CICADAForgeModule.h`
-- `Plugins/CICADAForge/Source/CICADAForge/Private/CICADAForgeModule.cpp`
-- `docs/checklists/PHASE_001_SMOKE_TEST.md`
-- `docs/evidence/EVIDENCE_LOG.md`
-
-Then ask the user for the Unreal open/build result.
-
-Do not start Phase 002 until Phase 001 smoke test passes or the failure is understood.
+Phase 002A should add the smallest useful Forge UI shell, not the whole singularity dressed as a spreadsheet demon.
