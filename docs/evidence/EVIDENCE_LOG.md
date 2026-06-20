@@ -55,17 +55,41 @@ ZIP at top -> completion percent -> PowerShell extractor -> GitHub Desktop commi
 
 ## Phase 002A - Forge UI Shell
 
+Date: 2026-06-21
+
+Verdict:
+
+- [x] PASS
+- [ ] PARTIAL
+- [ ] FAIL
+
+Notes:
+
+```text
+User screenshot showed the CICADA Forge tab open with:
+"Phase 002A: Forge UI shell is alive."
+```
+
+## Menu/tab result
+
+- [x] `Window -> CICADA Forge` exists by user result.
+- [x] CICADA Forge tab opens.
+- [x] Tab shows `CICADA FORGE`.
+- [x] Tab shows `Phase 002A: Forge UI shell is alive.`
+
+---
+
+## Phase 002B - Structured Forge Cockpit
+
 Date:
 
 Commit hash:
 
 ## Files checked
 
-- [ ] `Plugins/CICADAForge/Source/CICADAForgeEditor/CICADAForgeEditor.Build.cs`
-- [ ] `Plugins/CICADAForge/Source/CICADAForgeEditor/Public/CICADAForgeEditorModule.h`
 - [ ] `Plugins/CICADAForge/Source/CICADAForgeEditor/Private/CICADAForgeEditorModule.cpp`
-- [ ] updated `Plugins/CICADAForge/CICADAForge.uplugin`
-- [ ] `docs/checklists/PHASE_002A_SMOKE_TEST.md`
+- [ ] `docs/PHASE_CLUSTER_002B_STRUCTURED_FORGE_COCKPIT.md`
+- [ ] `docs/checklists/PHASE_002B_SMOKE_TEST.md`
 
 ## Unreal open result
 
@@ -81,6 +105,14 @@ Notes:
 
 ```
 
+## Layout result
+
+- [ ] Tab shows `Phase 002B: structured cockpit shell is alive.`
+- [ ] Left rail shows `PROJECT`.
+- [ ] Centre area shows `FORGE WORKSPACE`.
+- [ ] Right rail shows `STATUS`.
+- [ ] Bottom strip shows `LOG: Phase 002B shell loaded.`
+
 ## Output log / error
 
 Paste relevant lines:
@@ -88,26 +120,6 @@ Paste relevant lines:
 ```text
 
 ```
-
-Expected line:
-
-```text
-CICADA Forge Editor module started.
-```
-
-## Menu/tab result
-
-- [ ] `Window -> CICADA Forge` exists.
-- [ ] CICADA Forge tab opens.
-- [ ] Tab shows `CICADA FORGE`.
-- [ ] Tab shows `Phase 002A: Forge UI shell is alive.`
-
-## Screenshots captured
-
-- [ ] menu screenshot
-- [ ] tab screenshot
-- [ ] Output Log screenshot
-- [ ] GitHub commit screenshot
 
 ## Next action
 

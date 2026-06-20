@@ -32,7 +32,8 @@ Sidecars handle exact manufacturing:
 - Root `.uproject` exists.
 - `CICADAForge` runtime module exists.
 - Phase 001B locked the reusable ZIP-to-GitHub app workflow.
-- Current patch is Phase 002A: add a minimal Unreal editor UI shell.
+- Phase 002A worked by user screenshot: Unreal opened the CICADA Forge tab and showed `Phase 002A: Forge UI shell is alive.`
+- Current patch is Phase 002B: structured cockpit shell.
 
 ## Standing CICADA app development workflow
 
@@ -64,14 +65,12 @@ Use truth-first engineering:
 
 ## Immediate next task for future assistant
 
-After Phase 002A is pushed, verify these files:
+After Phase 002B is pushed, verify:
 
-- `Plugins/CICADAForge/Source/CICADAForgeEditor/CICADAForgeEditor.Build.cs`
-- `Plugins/CICADAForge/Source/CICADAForgeEditor/Public/CICADAForgeEditorModule.h`
-- `Plugins/CICADAForge/Source/CICADAForgeEditor/Private/CICADAForgeEditorModule.cpp`
-- updated `Plugins/CICADAForge/CICADAForge.uplugin`
-- `docs/checklists/PHASE_002A_SMOKE_TEST.md`
+- `PROJECT_STATUS.md` says Phase 002B.
+- `Plugins/CICADAForge/Source/CICADAForgeEditor/Private/CICADAForgeEditorModule.cpp` contains `Phase 002B: structured cockpit shell is alive.`
+- `docs/checklists/PHASE_002B_SMOKE_TEST.md` exists.
 
-Then ask the user for the Unreal editor menu/tab result.
+Then ask the user for the Unreal structured shell result.
 
-Do not move to Phase 002B until the tab either opens or the compile/menu failure is understood.
+Do not move to Phase 003 until the structured shell opens or the compile/layout failure is understood.

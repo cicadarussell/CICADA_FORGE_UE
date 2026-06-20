@@ -8,16 +8,30 @@ Define the early CICADA Forge editor UI direction without overbuilding it.
 
 Single editor menu item and placeholder tab.
 
-## Phase 002B target layout
+## Phase 002B
 
-A useful first cockpit layout:
+Structured cockpit shell:
 
 | Area | Purpose |
 |---|---|
-| Left rail | project actions, create/open/save, run phases |
+| Left rail | project identity and action stubs |
 | Centre | workspace canvas / future feature graph |
-| Right rail | evidence, status, validation, sidecar health |
+| Right rail | evidence, sidecar, machine, safety status |
 | Bottom strip | logs, errors, run receipts |
+
+## Phase 002C target
+
+Replace hardcoded labels with a small in-memory status model.
+
+Potential model fields:
+
+- project name
+- phase label
+- repo state
+- evidence state
+- CAD sidecar state
+- machine bridge state
+- last log line
 
 ## Design constraints
 
@@ -26,6 +40,7 @@ A useful first cockpit layout:
 - Must make failure obvious.
 - Must not hide machine-risk operations.
 - Must not generate asset sludge just to look fancy.
+- Must not pretend stubs are real systems.
 
 ## Future visual direction
 
