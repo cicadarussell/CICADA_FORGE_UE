@@ -1,0 +1,12 @@
+{
+    "FileVersion": 3,
+    "EngineAssociation": "5.8",
+    "Category": "CICADA",
+    "Description": "CICADA FORGE UE - Unreal Engine cockpit for CICADA SINGULARITY.",
+    "Plugins": [
+        {
+            "Name": "CICADAForge",
+            "Enabled": true
+        }
+    ]
+}

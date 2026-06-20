@@ -11,6 +11,7 @@ A human can open Unreal, create a simple parametric part through CICADA Forge UI
 ## Long-term outcome
 
 CICADA FORGE becomes the front-end for CICADA SINGULARITY:
+
 - visual node canvas
 - agents
 - live cameras
@@ -27,6 +28,7 @@ CICADA FORGE becomes the front-end for CICADA SINGULARITY:
 ### Unreal layer
 
 Responsible for:
+
 - UI
 - viewport
 - node canvas
@@ -42,6 +44,7 @@ Responsible for:
 ### CAD sidecar
 
 Responsible for:
+
 - parametric feature graph to exact geometry
 - STL export
 - STEP export
@@ -49,6 +52,7 @@ Responsible for:
 - failure reports
 
 Potential technologies:
+
 - CadQuery
 - OpenCascade
 - FreeCAD headless
@@ -57,6 +61,7 @@ Potential technologies:
 ### CAM / slicer sidecar
 
 Responsible for:
+
 - G-code generation or import
 - path preview
 - layer/toolpath metadata
@@ -64,6 +69,7 @@ Responsible for:
 - dry-run planning
 
 Potential technologies:
+
 - PrusaSlicer/SuperSlicer CLI
 - CuraEngine
 - FreeCAD Path
@@ -72,6 +78,7 @@ Potential technologies:
 ### Machine bridge
 
 Responsible for:
+
 - machine status
 - gated job sending
 - safe acknowledgement
@@ -79,6 +86,7 @@ Responsible for:
 - dry-run mode
 
 Potential technologies:
+
 - OctoPrint/Moonraker APIs for 3D printers
 - GRBL/FluidNC/LinuxCNC style bridge later
 - serial/network protocols through a separate service
@@ -101,9 +109,28 @@ Potential technologies:
 | 011 | Machine Bridge Dry Run | machine status and gated dry-run | 94% |
 | 012 | V0 Alpha Demo | bracket/enclosure from design to exported proof | 100% V0 |
 
+## Phase 001A scope
+
+Add only the Unreal project skeleton and plugin skeleton.
+
+Do not add:
+
+- Forge UI
+- node canvas
+- CAD generation
+- live cameras
+- machine bridge
+- agent system
+- Comfy/Ollama integration
+- manufacturing send
+- asset-heavy Unreal content
+
+The goal is boring but vital: project opens, module loads, repo remains clean.
+
 ## Safety/gating rule
 
 No machine receives job commands until:
+
 - geometry is valid
 - bounds are known
 - material/tool/nozzle is known
@@ -122,10 +149,11 @@ No machine receives job commands until:
 | ChatGPT loses context | High | handoff/status files |
 | Machine damage | High | dry-run and approval gates |
 | Build breaks silently | Medium | smoke tests and evidence |
-| Unreal plugin complexity | Medium | start with Editor Utility / plugin skeleton |
+| Unreal plugin complexity | Medium | start with minimal compile target |
 | Sidecar integration pain | Medium | local HTTP and strict JSON schema |
 
 ## Current locked decision
 
 Use Unreal Engine as CICADA FORGE interface and orchestration layer.
+
 Use sidecars for exact CAD/CAM/manufacturing output.

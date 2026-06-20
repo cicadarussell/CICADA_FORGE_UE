@@ -1,8 +1,11 @@
-# Machine Bridge
+# Machine Bridge Sidecar
 
-This will eventually talk to printers/CNC/robotics systems.
+Placeholder for Phase 011.
 
-V0 is dry-run/status only.
+This sidecar will later expose gated machine status and dry-run controls.
 
-Hard rule:
-No direct machine sending until the full gate stack exists.
+## Safety boundary
+
+No physical machine receives a job until explicit human approval and evidence gates exist.
+
+Phase 001A does not send anything to machines. The forge is being born, not handed a chainsaw.

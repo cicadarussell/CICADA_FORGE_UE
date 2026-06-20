@@ -1,19 +1,18 @@
-# CAD Sidecar
+# CAD Service Sidecar
 
-This service will receive `.cforge.json` feature graphs and generate exact CAD outputs.
+Placeholder for Phase 005.
 
-Planned outputs:
-- STL
-- STEP
-- validation report JSON
-- preview mesh metadata
+This sidecar will later convert CICADA feature graphs into exact geometry exports.
 
-Potential backend:
+Potential stack:
+
+- Python
 - CadQuery
 - OpenCascade
 - FreeCAD headless
 
-V0 endpoint idea:
-- `POST /build`
-- input: feature graph JSON
-- output: receipt JSON + paths to STL/STEP
+## Not active yet
+
+Phase 001A only creates Unreal project structure.
+
+Do not build the CAD sidecar until feature graph schema and primitive tools exist.

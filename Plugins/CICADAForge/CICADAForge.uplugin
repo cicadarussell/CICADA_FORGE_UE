@@ -1,0 +1,23 @@
+{
+    "FileVersion": 3,
+    "Version": 1,
+    "VersionName": "0.1.0",
+    "FriendlyName": "CICADA Forge",
+    "Description": "CICADA FORGE Unreal plugin spine for project UI, feature graph, CAD sidecar bridge, evidence logging, and future machine cockpit.",
+    "Category": "CICADA",
+    "CreatedBy": "CICADA Works",
+    "CreatedByURL": "https://github.com/cicadarussell/CICADA_FORGE_UE",
+    "DocsURL": "",
+    "MarketplaceURL": "",
+    "SupportURL": "",
+    "CanContainContent": true,
+    "IsBetaVersion": true,
+    "Installed": false,
+    "Modules": [
+        {
+            "Name": "CICADAForge",
+            "Type": "Runtime",
+            "LoadingPhase": "Default"
+        }
+    ]
+}

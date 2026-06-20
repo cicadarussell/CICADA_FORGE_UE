@@ -7,6 +7,7 @@ This file is the short context handoff for any future ChatGPT/Codex/agent sessio
 CICADA FORGE UE is the Unreal Engine based CICADA SINGULARITY build.
 
 The user wants Unreal Engine to become the main design/coding/machine-control forge:
+
 - design inside Unreal
 - build software systems inside Unreal
 - use live cameras
@@ -19,24 +20,16 @@ The user wants Unreal Engine to become the main design/coding/machine-control fo
 Unreal is the interface and operating environment.
 
 Sidecars handle exact manufacturing:
+
 - CAD sidecar for STEP/STL exact geometry
 - CAM/slicer sidecar for G-code/toolpaths
 - machine bridge for printers/CNC/robotics
 - evidence logger for screenshots/logs/build proofs
 
-## Why
-
-The user likes the Unreal route because it can become:
-- a live visual node/agent workspace
-- a 3D digital twin of the workshop
-- a software maker
-- a product forge
-- a machine command cockpit
-- a future CICADA macro/agent environment
-
 ## Engineering rules
 
 Use truth-first engineering:
+
 - separate facts, assumptions, speculation, unknowns
 - no fake working claims
 - no silent branch drift
@@ -50,7 +43,24 @@ Use truth-first engineering:
 
 Open Unreal and use CICADA Forge to create a simple bracket/enclosure feature graph, export STL/STEP through a sidecar, reimport/display it, and record evidence.
 
-## Immediate next phase
+## Current phase
 
-Phase Cluster 001:
-Create UE5.8 project cleanly, commit only source/config/docs/plugin skeleton, add .gitignore/.gitattributes, then add CICADAForge plugin skeleton.
+Phase Cluster 001A.
+
+This patch adds the first Unreal project file and a minimal C++ plugin skeleton named `CICADAForge`.
+
+## Immediate next task for future assistant
+
+Verify these files exist in GitHub:
+
+- `CICADA_FORGE_UE.uproject`
+- `Plugins/CICADAForge/CICADAForge.uplugin`
+- `Plugins/CICADAForge/Source/CICADAForge/CICADAForge.Build.cs`
+- `Plugins/CICADAForge/Source/CICADAForge/Public/CICADAForgeModule.h`
+- `Plugins/CICADAForge/Source/CICADAForge/Private/CICADAForgeModule.cpp`
+- `docs/checklists/PHASE_001_SMOKE_TEST.md`
+- `docs/evidence/EVIDENCE_LOG.md`
+
+Then ask the user for the Unreal open/build result.
+
+Do not start Phase 002 until Phase 001 smoke test passes or the failure is understood.
