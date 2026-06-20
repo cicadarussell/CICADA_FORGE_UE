@@ -4,9 +4,11 @@
 
 #include "Framework/Docking/TabManager.h"
 #include "Framework/MultiBox/MultiBoxBuilder.h"
+#include "Input/Reply.h"
 #include "Logging/LogMacros.h"
 #include "ToolMenus.h"
 #include "Widgets/Docking/SDockTab.h"
+#include "Widgets/Input/SButton.h"
 #include "Widgets/Layout/SBorder.h"
 #include "Widgets/SBoxPanel.h"
 #include "Widgets/SWidget.h"
@@ -46,6 +48,25 @@ namespace CICADAForgeEditorUI
             ];
     }
 
+    static TSharedRef<SWidget> MakeActionButton(const FText& Label)
+    {
+        return SNew(SButton)
+            .Text(FText::Format(
+                NSLOCTEXT("CICADAForgeEditorUI", "StubButtonFormat", "[stub] {0}"),
+                Label
+            ))
+            .ToolTipText(NSLOCTEXT(
+                "CICADAForgeEditorUI",
+                "StubButtonTooltip",
+                "Safe stub only. This logs an action and does not modify files, export CAD, or command machines."
+            ))
+            .OnClicked_Lambda([Label]()
+            {
+                UE_LOG(LogCICADAForgeEditor, Display, TEXT("CICADA Forge safe action stub clicked: %s"), *Label.ToString());
+                return FReply::Handled();
+            });
+    }
+
     static TSharedRef<SWidget> MakeActionList(const TArray<FText>& Actions)
     {
         TSharedRef<SVerticalBox> ActionBox = SNew(SVerticalBox);
@@ -56,9 +77,7 @@ namespace CICADAForgeEditorUI
             .AutoHeight()
             .Padding(0, 0, 0, 6)
             [
-                SNew(STextBlock)
-                .Text(Action)
-                .AutoWrapText(true)
+                MakeActionButton(Action)
             ];
         }
 

@@ -10,15 +10,15 @@ Mainline.
 
 ## Current phase
 
-Phase Cluster 002D: Persistent project state stub.
+Phase Cluster 002E: Safe action button stubs.
 
 ## Completion
 
-Approximate overall project completion: 20 percent.
-Approximate V0 alpha completion: 18 percent.
+Approximate overall project completion: 23 percent.
+Approximate V0 alpha completion: 20 percent.
 Phases completed: 1 / 12.
 
-Phase 002 is not fully passed until persistent project state is read from config and evidence is logged.
+Phase 002 is not fully passed until action buttons appear, click, and only log safe stub events.
 
 ## Working
 
@@ -27,27 +27,27 @@ Phase 002 is not fully passed until persistent project state is read from config
 - Unreal Engine 5.8 project file exists.
 - CICADAForge runtime plugin skeleton exists.
 - CICADAForgeEditor module exists.
-- User reported that the Unreal first-open smoke test worked.
-- User provided screenshot showing Phase 002A Forge tab opened successfully.
-- User provided screenshot showing Phase 002B structured Forge cockpit opened successfully.
-- User provided screenshot showing Phase 002C status model fed the shell successfully.
+- User reported Phase 001A worked.
+- User provided screenshots showing Phase 002A, 002B, 002C, and 002D worked.
 - Phase 001B locked the reusable ZIP-to-GitHub development workflow.
-- The Unreal stale-binary fix is now treated as part of the normal installer/test cycle when C++ changes.
+- The Unreal stale-binary fix is now part of the installer/test cycle when C++ changes.
+- Persistent project state reads from `Config/CICADAForgeState.ini`.
 
-## Added in Phase 002D
+## Added in Phase 002E
 
-- Adds `Config/CICADAForgeState.ini`.
-- Adds `FCICADAForgeProjectState`.
-- Adds config loading from `Config/CICADAForgeState.ini`.
-- Updates the status model to build UI state from persistent project config.
-- Adds standing stale-binary clean into the phase installer instructions.
-- Adds Phase 002D checklist and evidence section.
+- Turns left-rail action stubs into real Slate `SButton` widgets.
+- Buttons log safe stub events to Output Log.
+- Buttons do not modify files.
+- Buttons do not export CAD.
+- Buttons do not call sidecars.
+- Buttons do not send machine commands.
+- Updates project phase config and evidence docs.
 
 ## Not yet built
 
+- No persistent selected-action display yet.
 - No editor settings UI yet.
 - No save/write-back to config yet.
-- No interactive buttons yet.
 - No real project browser.
 - No feature graph runtime.
 - No CAD sidecar client.
@@ -58,20 +58,18 @@ Phase 002 is not fully passed until persistent project state is read from config
 
 ## Next action
 
-1. Apply Phase 002D patch.
+1. Apply Phase 002E patch.
 2. Commit and push:
-   `Phase 002D: Add persistent Forge project state`
-3. Installer should clean stale Unreal binaries after C++ changes.
-4. Open Unreal and `Window -> CICADA Forge`.
-5. Confirm UI shows:
-   `Phase 002D: persistent project state feeds the shell`
-6. Confirm status rail includes `Project State`.
-7. Record result in `docs/evidence/EVIDENCE_LOG.md`.
-8. Push evidence.
+   `Phase 002E: Add safe Forge action button stubs`
+3. Open Unreal and test the Forge tab.
+4. Click each left-rail action button.
+5. Confirm Output Log contains:
+   `CICADA Forge safe action stub clicked:`
+6. Record result in `docs/evidence/EVIDENCE_LOG.md`.
 
 ## Current risk
 
-The next likely failure is C++ compile from config-loading code.
+The next likely failure is Slate button compile or include syntax.
 
 If it fails, capture:
 - Unreal popup text

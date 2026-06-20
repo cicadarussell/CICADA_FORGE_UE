@@ -32,10 +32,11 @@ Sidecars handle exact manufacturing:
 - Root `.uproject` exists.
 - `CICADAForge` runtime module exists.
 - Phase 001B locked the reusable ZIP-to-GitHub app workflow.
-- Phase 002A worked by user screenshot: Unreal opened the CICADA Forge tab and showed `Phase 002A: Forge UI shell is alive.`
-- Phase 002B worked by user screenshot: Unreal opened the structured cockpit shell with project/workspace/status/log panels.
-- Phase 002C worked by user screenshot: status model fed the UI shell.
-- Current patch is Phase 002D: persistent project state stub.
+- Phase 002A worked by user screenshot: first Forge tab.
+- Phase 002B worked by user screenshot: structured cockpit shell.
+- Phase 002C worked by user screenshot: status model fed the shell.
+- Phase 002D worked by user screenshot: persistent project state fed the shell.
+- Current patch is Phase 002E: safe action button stubs.
 
 ## Standing CICADA app development workflow
 
@@ -50,8 +51,6 @@ Use this pattern for this repo and future CICADA apps:
 7. ChatGPT reads GitHub and verifies.
 8. User asks for next phase cluster.
 9. Repeat.
-
-This is the default structure until direct repo write automation is available.
 
 ## Standing Unreal stale-binary fix
 
@@ -68,8 +67,6 @@ If GitHub/local source shows a newer phase but Unreal still displays old UI text
 4. Allow one rebuild.
 5. Re-test the tab.
 
-This fixed the Phase 002B stale UI issue and was also required after Phase 002C.
-
 ## Engineering rules
 
 Use truth-first engineering:
@@ -85,14 +82,15 @@ Use truth-first engineering:
 
 ## Immediate next task for future assistant
 
-After Phase 002D is pushed, verify:
+After Phase 002E is pushed, verify:
 
 - `Config/CICADAForgeState.ini`
-- `Plugins/CICADAForge/Source/CICADAForgeEditor/Public/CICADAForgeProjectState.h`
-- `Plugins/CICADAForge/Source/CICADAForgeEditor/Private/CICADAForgeProjectState.cpp`
+- `Plugins/CICADAForge/Source/CICADAForgeEditor/Private/CICADAForgeEditorModule.cpp`
 - `Plugins/CICADAForge/Source/CICADAForgeEditor/Private/CICADAForgeStatusModel.cpp`
-- `docs/checklists/PHASE_002D_SMOKE_TEST.md`
+- `docs/checklists/PHASE_002E_SMOKE_TEST.md`
 
-Then ask the user for the Unreal result.
+Then ask the user for:
+- screenshot of the UI
+- whether clicking buttons writes Output Log lines
 
-Do not move to Phase 002E until persistent project state appears in the UI or the compile/config failure is understood.
+Do not move to Phase 002F until buttons appear and click safely.
