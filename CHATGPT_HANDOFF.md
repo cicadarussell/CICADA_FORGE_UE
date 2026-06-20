@@ -28,16 +28,11 @@ Sidecars handle exact manufacturing:
 
 ## Current proven state
 
-User reported that Phase 001A worked.
-
-Phase 001A added and pushed:
-
-- `CICADA_FORGE_UE.uproject`
-- `Plugins/CICADAForge/CICADAForge.uplugin`
-- minimal `CICADAForge` runtime C++ module
-- Phase 001 smoke test docs
-
-The next normal technical build is Phase 002A: Forge UI Shell skeleton.
+- Phase 001A worked by user report.
+- Root `.uproject` exists.
+- `CICADAForge` runtime module exists.
+- Phase 001B locked the reusable ZIP-to-GitHub app workflow.
+- Current patch is Phase 002A: add a minimal Unreal editor UI shell.
 
 ## Standing CICADA app development workflow
 
@@ -67,12 +62,16 @@ Use truth-first engineering:
 - always preserve mainline project state
 - machine actions must be gated
 
-## V0 alpha goal
-
-Open Unreal and use CICADA Forge to create a simple bracket/enclosure feature graph, export STL/STEP through a sidecar, reimport/display it, and record evidence.
-
 ## Immediate next task for future assistant
 
-Verify Phase 001B exists, then begin Phase 002A.
+After Phase 002A is pushed, verify these files:
 
-Phase 002A should add the smallest useful Forge UI shell, not the whole singularity dressed as a spreadsheet demon.
+- `Plugins/CICADAForge/Source/CICADAForgeEditor/CICADAForgeEditor.Build.cs`
+- `Plugins/CICADAForge/Source/CICADAForgeEditor/Public/CICADAForgeEditorModule.h`
+- `Plugins/CICADAForge/Source/CICADAForgeEditor/Private/CICADAForgeEditorModule.cpp`
+- updated `Plugins/CICADAForge/CICADAForge.uplugin`
+- `docs/checklists/PHASE_002A_SMOKE_TEST.md`
+
+Then ask the user for the Unreal editor menu/tab result.
+
+Do not move to Phase 002B until the tab either opens or the compile/menu failure is understood.

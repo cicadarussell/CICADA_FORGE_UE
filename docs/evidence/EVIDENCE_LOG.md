@@ -34,29 +34,6 @@ Notes:
 User reported: "okay it worked."
 ```
 
-## Output log / error
-
-Paste relevant lines if captured:
-
-```text
-CICADA Forge module started.
-```
-
-If the exact log line was not captured, keep this as expected target and confirm again in a later evidence pass.
-
-## Screenshots / video captured
-
-- [x] GitHub file visibility verified by ChatGPT.
-- [x] User uploaded a video evidence file in chat.
-- [ ] Output Log screenshot committed to repo.
-- [ ] Unreal project open screenshot committed to repo.
-
-## Next action
-
-```text
-Apply Phase 001B workflow/status patch, then continue to Phase 002A Forge UI Shell.
-```
-
 ---
 
 ## Phase 001B - Workflow Lock
@@ -65,11 +42,75 @@ Date: 2026-06-20
 
 Verdict:
 
-- [x] PASS once committed/pushed.
+- [x] PASS by GitHub update.
 
 Purpose:
 
 ```text
 Lock the reusable CICADA app workflow:
 ZIP at top -> completion percent -> PowerShell extractor -> GitHub Desktop commit/push -> ChatGPT GitHub verification -> next phase cluster.
+```
+
+---
+
+## Phase 002A - Forge UI Shell
+
+Date:
+
+Commit hash:
+
+## Files checked
+
+- [ ] `Plugins/CICADAForge/Source/CICADAForgeEditor/CICADAForgeEditor.Build.cs`
+- [ ] `Plugins/CICADAForge/Source/CICADAForgeEditor/Public/CICADAForgeEditorModule.h`
+- [ ] `Plugins/CICADAForge/Source/CICADAForgeEditor/Private/CICADAForgeEditorModule.cpp`
+- [ ] updated `Plugins/CICADAForge/CICADAForge.uplugin`
+- [ ] `docs/checklists/PHASE_002A_SMOKE_TEST.md`
+
+## Unreal open result
+
+Verdict:
+
+- [ ] PASS
+- [ ] PARTIAL
+- [ ] FAIL
+
+Notes:
+
+```text
+
+```
+
+## Output log / error
+
+Paste relevant lines:
+
+```text
+
+```
+
+Expected line:
+
+```text
+CICADA Forge Editor module started.
+```
+
+## Menu/tab result
+
+- [ ] `Window -> CICADA Forge` exists.
+- [ ] CICADA Forge tab opens.
+- [ ] Tab shows `CICADA FORGE`.
+- [ ] Tab shows `Phase 002A: Forge UI shell is alive.`
+
+## Screenshots captured
+
+- [ ] menu screenshot
+- [ ] tab screenshot
+- [ ] Output Log screenshot
+- [ ] GitHub commit screenshot
+
+## Next action
+
+```text
+
 ```

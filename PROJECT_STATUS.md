@@ -10,51 +10,68 @@ Mainline.
 
 ## Current phase
 
-Phase Cluster 001B: Close Phase 001 and lock reusable ZIP-to-GitHub development workflow.
+Phase Cluster 002A: Forge UI Shell skeleton.
 
 ## Completion
 
-Approximate overall project completion: 8 percent.
-Approximate V0 alpha completion: 6 percent.
+Approximate overall project completion: 11 percent.
+Approximate V0 alpha completion: 9 percent.
 Phases completed: 1 / 12.
+
+Phase 002 is not fully passed until the editor menu/tab opens in Unreal and evidence is logged.
 
 ## Working
 
 - Dedicated GitHub repository exists: `cicadarussell/CICADA_FORGE_UE`.
 - GitHub can be used as project memory and future-chat handoff spine.
 - Unreal Engine 5.8 project file exists.
-- CICADAForge plugin descriptor exists.
-- CICADAForge C++ module skeleton exists.
+- CICADAForge runtime plugin skeleton exists.
 - User reported that the Unreal first-open smoke test worked.
-- Phase 001A project skeleton is now visible on GitHub.
-- ZIP patch workflow is now the default working process:
-  1. ChatGPT provides ZIP at top of response.
-  2. Response includes project/V0/phase completion percentages.
-  3. User downloads ZIP.
-  4. User runs PowerShell extractor into repo root.
-  5. User commits and pushes with GitHub Desktop.
-  6. ChatGPT inspects GitHub and continues next phase cluster.
+- Phase 001A project skeleton is visible on GitHub.
+- Phase 001B locked the reusable ZIP-to-GitHub development workflow.
+
+## Added in Phase 002A
+
+- `CICADAForgeEditor` editor module.
+- Editor menu entry target: Window -> CICADA Forge.
+- Nomad tab spawner for `CICADAForgeMainTab`.
+- Placeholder Forge workspace tab with:
+  - title
+  - phase status
+  - next-system placeholders
+  - safety boundary note
+- Phase 002A smoke test checklist.
 
 ## Not yet built
 
-- No Forge UI shell yet.
-- No feature graph runtime yet.
-- No CAD sidecar running yet.
-- No reimport/preview loop yet.
-- No evidence automation inside Unreal yet.
-- No machine bridge yet.
-- No live camera bridge yet.
+- No real Forge layout panels yet.
+- No project browser.
+- No feature graph runtime.
+- No CAD sidecar client.
+- No reimport/preview loop.
+- No evidence automation inside Unreal.
+- No machine bridge.
+- No live camera bridge.
 
 ## Next action
 
-1. Apply Phase 001B patch.
+1. Apply Phase 002A patch.
 2. Commit and push:
-   `Phase 001B: Close Phase 001 and lock CICADA app workflow`
-3. Ask for next phase cluster.
-4. Next expected technical build: Phase 002A Forge UI Shell skeleton.
+   `Phase 002A: Add Forge editor UI shell`
+3. Open Unreal.
+4. Rebuild modules if prompted.
+5. In Unreal, open:
+   `Window -> CICADA Forge`
+6. Confirm the tab appears.
+7. Record result in `docs/evidence/EVIDENCE_LOG.md`.
+8. Push evidence.
 
-## Standing build rule
+## Current risk
 
-Use the ZIP-to-GitHub loop for future CICADA apps unless a repo-native write tool is available.
+The next likely failure is Unreal editor module compile or menu registration.
 
-Do not silently drift branches or upload generated Unreal junk.
+If it fails, capture:
+- Unreal popup text
+- Output Log lines
+- Visual Studio / compiler error
+- generated log path

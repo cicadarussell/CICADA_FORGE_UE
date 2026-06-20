@@ -1,7 +1,7 @@
 {
     "FileVersion": 3,
-    "Version": 1,
-    "VersionName": "0.1.0",
+    "Version": 2,
+    "VersionName": "0.2.0",
     "FriendlyName": "CICADA Forge",
     "Description": "CICADA FORGE Unreal plugin spine for project UI, feature graph, CAD sidecar bridge, evidence logging, and future machine cockpit.",
     "Category": "CICADA",
@@ -18,6 +18,11 @@
             "Name": "CICADAForge",
             "Type": "Runtime",
             "LoadingPhase": "Default"
+        },
+        {
+            "Name": "CICADAForgeEditor",
+            "Type": "Editor",
+            "LoadingPhase": "PostEngineInit"
         }
     ]
 }
