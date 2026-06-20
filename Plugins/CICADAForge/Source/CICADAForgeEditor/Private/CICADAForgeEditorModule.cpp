@@ -48,7 +48,11 @@ namespace CICADAForgeEditorUI
             ];
     }
 
-    static TSharedRef<SWidget> MakeActionButton(const FText& Label, const TSharedRef<STextBlock>& VisibleActionStatus)
+    static TSharedRef<SWidget> MakeActionButton(
+        const FText& Label,
+        const TSharedRef<STextBlock>& VisibleActionStatus,
+        const TSharedRef<STextBlock>& LastActionStatus
+    )
     {
         return SNew(SButton)
             .Text(FText::Format(
@@ -60,9 +64,9 @@ namespace CICADAForgeEditorUI
                 "StubButtonTooltip",
                 "Safe stub only. This updates visible action state, logs an action, and does not modify files, export CAD, or command machines."
             ))
-            .OnClicked_Lambda([Label, VisibleActionStatus]()
+            .OnClicked_Lambda([Label, VisibleActionStatus, LastActionStatus]()
             {
-                const FText NewStatus = FText::Format(
+                const FText LeftStatus = FText::Format(
                     NSLOCTEXT(
                         "CICADAForgeEditorUI",
                         "SelectedActionFormat",
@@ -71,14 +75,28 @@ namespace CICADAForgeEditorUI
                     Label
                 );
 
-                VisibleActionStatus->SetText(NewStatus);
+                const FText RightStatus = FText::Format(
+                    NSLOCTEXT(
+                        "CICADAForgeEditorUI",
+                        "LastActionFormat",
+                        "Last Action: {0}\nResult: safe stub logged only"
+                    ),
+                    Label
+                );
+
+                VisibleActionStatus->SetText(LeftStatus);
+                LastActionStatus->SetText(RightStatus);
 
                 UE_LOG(LogCICADAForgeEditor, Display, TEXT("CICADA Forge safe action stub clicked: %s"), *Label.ToString());
                 return FReply::Handled();
             });
     }
 
-    static TSharedRef<SWidget> MakeActionList(const TArray<FText>& Actions, const TSharedRef<STextBlock>& VisibleActionStatus)
+    static TSharedRef<SWidget> MakeActionList(
+        const TArray<FText>& Actions,
+        const TSharedRef<STextBlock>& VisibleActionStatus,
+        const TSharedRef<STextBlock>& LastActionStatus
+    )
     {
         TSharedRef<SVerticalBox> ActionBox = SNew(SVerticalBox);
 
@@ -88,7 +106,7 @@ namespace CICADAForgeEditorUI
             .AutoHeight()
             .Padding(0, 0, 0, 6)
             [
-                MakeActionButton(Action, VisibleActionStatus)
+                MakeActionButton(Action, VisibleActionStatus, LastActionStatus)
             ];
         }
 
@@ -112,7 +130,11 @@ namespace CICADAForgeEditorUI
         return CardBox;
     }
 
-    static TSharedRef<SWidget> MakeLeftRail(const FCICADAForgeStatusModel& Model, const TSharedRef<STextBlock>& VisibleActionStatus)
+    static TSharedRef<SWidget> MakeLeftRail(
+        const FCICADAForgeStatusModel& Model,
+        const TSharedRef<STextBlock>& VisibleActionStatus,
+        const TSharedRef<STextBlock>& LastActionStatus
+    )
     {
         return SNew(SBorder)
             .Padding(10)
@@ -149,7 +171,7 @@ namespace CICADAForgeEditorUI
                 + SVerticalBox::Slot()
                 .AutoHeight()
                 [
-                    MakeActionList(Model.ProjectActions, VisibleActionStatus)
+                    MakeActionList(Model.ProjectActions, VisibleActionStatus, LastActionStatus)
                 ]
 
                 + SVerticalBox::Slot()
@@ -189,7 +211,10 @@ namespace CICADAForgeEditorUI
             ];
     }
 
-    static TSharedRef<SWidget> MakeRightRail(const FCICADAForgeStatusModel& Model)
+    static TSharedRef<SWidget> MakeRightRail(
+        const FCICADAForgeStatusModel& Model,
+        const TSharedRef<STextBlock>& LastActionStatus
+    )
     {
         return SNew(SBorder)
             .Padding(10)
@@ -203,6 +228,27 @@ namespace CICADAForgeEditorUI
                     SNew(STextBlock)
                     .Text(Model.StatusTitle)
                     .AutoWrapText(true)
+                ]
+
+                + SVerticalBox::Slot()
+                .AutoHeight()
+                .Padding(0, 0, 0, 10)
+                [
+                    MakeCard(
+                        NSLOCTEXT("CICADAForgeEditorUI", "LastActionCardTitle", "Last Action"),
+                        LastActionStatus->GetText()
+                    )
+                ]
+
+                + SVerticalBox::Slot()
+                .AutoHeight()
+                .Padding(0, 0, 0, 10)
+                [
+                    SNew(SBorder)
+                    .Padding(10)
+                    [
+                        LastActionStatus
+                    ]
                 ]
 
                 + SVerticalBox::Slot()
@@ -287,6 +333,15 @@ TSharedRef<SDockTab> FCICADAForgeEditorModule::SpawnForgeTab(const FSpawnTabArgs
         ))
         .AutoWrapText(true);
 
+    TSharedRef<STextBlock> LastActionStatus =
+        SNew(STextBlock)
+        .Text(NSLOCTEXT(
+            "CICADAForgeEditorUI",
+            "InitialLastActionStatus",
+            "Last Action: none\nResult: waiting for safe stub click"
+        ))
+        .AutoWrapText(true);
+
     return SNew(SDockTab)
         .TabRole(ETabRole::NomadTab)
         [
@@ -322,7 +377,7 @@ TSharedRef<SDockTab> FCICADAForgeEditorModule::SpawnForgeTab(const FSpawnTabArgs
                     .FillWidth(0.22f)
                     .Padding(0, 0, 8, 0)
                     [
-                        CICADAForgeEditorUI::MakeLeftRail(Model, VisibleActionStatus)
+                        CICADAForgeEditorUI::MakeLeftRail(Model, VisibleActionStatus, LastActionStatus)
                     ]
 
                     + SHorizontalBox::Slot()
@@ -335,7 +390,7 @@ TSharedRef<SDockTab> FCICADAForgeEditorModule::SpawnForgeTab(const FSpawnTabArgs
                     + SHorizontalBox::Slot()
                     .FillWidth(0.22f)
                     [
-                        CICADAForgeEditorUI::MakeRightRail(Model)
+                        CICADAForgeEditorUI::MakeRightRail(Model, LastActionStatus)
                     ]
                 ]
 

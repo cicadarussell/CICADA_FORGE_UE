@@ -9,11 +9,11 @@ FCICADAForgeProjectState FCICADAForgeProjectState::MakeDefault()
 
     State.ProjectName = TEXT("CICADA_FORGE_UE");
     State.RepoPath = TEXT("C:\\CICADA\\CICADA_APPS\\CICADA_FORGE_UE");
-    State.CurrentPhase = TEXT("Phase 002F: selected action state updates on screen");
-    State.EvidenceState = TEXT("Phase 002E buttons clicked and logged safely");
+    State.CurrentPhase = TEXT("Phase 002G: last action status card mirrors button clicks");
+    State.EvidenceState = TEXT("Phase 002F selected-action UI passed by output log/user report");
     State.CadSidecarState = TEXT("Offline - Phase 005 target");
     State.MachineBridgeState = TEXT("Locked - no physical machine commands in V0 shell");
-    State.LastRunState = TEXT("Phase 002E passed by output log");
+    State.LastRunState = TEXT("Phase 002F passed by visible selected-action state and safe logs");
     State.bMachineCommandsLocked = true;
 
     return State;

@@ -10,15 +10,15 @@ Mainline.
 
 ## Current phase
 
-Phase Cluster 002F: Visible selected-action state.
+Phase Cluster 002G: Last Action status card.
 
 ## Completion
 
-Approximate overall project completion: 26 percent.
-Approximate V0 alpha completion: 23 percent.
+Approximate overall project completion: 29 percent.
+Approximate V0 alpha completion: 26 percent.
 Phases completed: 1 / 12.
 
-Phase 002 is not fully passed until action buttons update visible UI state and still only log safe stub events.
+Phase 002 is not fully passed until the right-rail Last Action card mirrors button clicks.
 
 ## Working
 
@@ -30,17 +30,18 @@ Phase 002 is not fully passed until action buttons update visible UI state and s
 - User reported Phase 001A worked.
 - User provided screenshots showing Phase 002A, 002B, 002C, and 002D worked.
 - User reported Phase 002E buttons logged safe stub actions correctly.
-- Phase 001B locked the reusable ZIP-to-GitHub development workflow.
+- Phase 002F added visible selected-action state under the buttons.
 - The Unreal stale-binary fix is part of the installer/test cycle when C++ changes.
 - Persistent project state reads from `Config/CICADAForgeState.ini`.
 
-## Added in Phase 002F
+## Added in Phase 002G
 
-- Adds visible selected-action state under the left-rail buttons.
-- Button clicks now update the UI with:
-  `Selected action: <name> - safe stub only`
-- Button clicks still log safe stub events to Output Log.
-- Fixes Unreal config warning by normalizing the `CICADAForgeState.ini` path before using `GConfig`.
+- Adds right-rail `Last Action` status area.
+- Button clicks update both:
+  - left rail selected-action text
+  - right rail Last Action status
+- Button clicks still only log safe stub events.
+- Fixes `DefaultGame.ini` ProjectID format to avoid the Unreal ProjectID import warning.
 - Updates project phase config and evidence docs.
 
 ## Not yet built
@@ -58,19 +59,18 @@ Phase 002 is not fully passed until action buttons update visible UI state and s
 
 ## Next action
 
-1. Apply Phase 002F patch.
+1. Apply Phase 002G patch.
 2. Commit and push:
-   `Phase 002F: Add visible Forge selected-action state`
+   `Phase 002G: Add mirrored Last Action status card`
 3. Open Unreal and test the Forge tab.
 4. Click each left-rail action button.
-5. Confirm visible selected-action text changes on screen.
-6. Confirm Output Log still contains:
-   `CICADA Forge safe action stub clicked:`
-7. Confirm the old non-normalized config path warning is gone or reduced.
+5. Confirm both left and right UI areas update.
+6. Confirm Output Log still contains safe stub click logs.
+7. Confirm ProjectID import warning is gone.
 
 ## Current risk
 
-The next likely failure is Slate reference/lambda compile syntax.
+The next likely failure is Slate shared text reference wiring.
 
 If it fails, capture:
 - Unreal popup text
