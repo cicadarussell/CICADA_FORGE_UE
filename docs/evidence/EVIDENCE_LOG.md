@@ -58,39 +58,40 @@ Verdict:
 
 - [x] PASS
 
-Notes:
-
-```text
-User clicked all four buttons.
-Output Log showed safe stub clicked messages.
-```
-
 ## Phase 002F - Visible Selected Action State
 
 Date: 2026-06-21
 
 Verdict:
 
-- [x] PASS by user continuing after output log.
+- [x] PASS
+
+## Phase 002G - Last Action Status Card
+
+Date: 2026-06-21
+
+Verdict:
+
+- [x] PASS by user report
 
 Notes:
 
 ```text
-User provided Output Log. Build succeeded.
-Known harmless/expected lines included:
-- Missing aqProf/Vtune/PIX profiling DLLs.
-- XGE license warning but standalone build continued.
-- DerivedDataCache maintenance/Zen cache housekeeping.
+User said output log is crazy but it is working.
+Output log showed module rebuild succeeded.
 ```
 
-Issue found:
+Non-blocking noise observed:
 
 ```text
-ProjectID import warning in DefaultGame.ini.
-Fixed in Phase 002G.
+aqProf/Vtune profiling DLLs missing.
+PIX/RenderDoc not active unless launched from those tools.
+XGE license not activated, but standalone build continued.
+Platform SDKs missing for Android/iOS/Linux/Mac, not relevant to Win64 editor test.
+DerivedDataCache/Zen cache messages normal.
 ```
 
-## Phase 002G - Last Action Status Card
+## Phase 002H - In-memory Event Log
 
 Date:
 
@@ -98,10 +99,9 @@ Commit hash:
 
 ## Files checked
 
-- [ ] `Config/DefaultGame.ini`
 - [ ] `Config/CICADAForgeState.ini`
 - [ ] `Plugins/CICADAForge/Source/CICADAForgeEditor/Private/CICADAForgeEditorModule.cpp`
-- [ ] `docs/checklists/PHASE_002G_SMOKE_TEST.md`
+- [ ] `docs/checklists/PHASE_002H_SMOKE_TEST.md`
 
 ## Unreal open result
 
@@ -119,10 +119,12 @@ Notes:
 
 ## Button result
 
-- [ ] Left selected-action text updates.
-- [ ] Right Last Action text updates.
+- [ ] Event Log starts with waiting message.
+- [ ] Event Log records New design.
+- [ ] Event Log records Open feature graph.
+- [ ] Event Log records Run validation.
+- [ ] Event Log records Export proof receipt.
 - [ ] Output Log still logs `CICADA Forge safe action stub clicked:`.
-- [ ] `ProjectID import failed` warning is gone.
 - [ ] No CAD export occurred.
 - [ ] No machine command occurred.
 

@@ -26,8 +26,9 @@ Sidecars handle exact manufacturing:
 - Phase 002C worked by user screenshot: status model fed the shell.
 - Phase 002D worked by user screenshot: persistent project state fed the shell.
 - Phase 002E worked by user report: four buttons clicked and logged safe stub actions.
-- Phase 002F is current in GitHub and added visible selected-action state.
-- Current patch is Phase 002G: mirrored Last Action status card.
+- Phase 002F worked enough to continue: visible selected-action state.
+- Phase 002G worked by user report: output log noisy but UI working.
+- Current patch is Phase 002H: in-memory event log.
 
 ## Standing CICADA app development workflow
 
@@ -53,16 +54,21 @@ If GitHub/local source shows a newer phase but Unreal still displays old UI text
 4. Allow one rebuild.
 5. Re-test the tab.
 
-## Current issue fixed in Phase 002G
+## Output-log interpretation
 
-The user output log showed:
+Noisy but non-blocking lines observed include:
 
-```text
-ImportText (ProjectID): Missing opening parenthesis
-LoadConfig ... import failed for ProjectID
-```
+- `aqProf.dll` missing
+- `VtuneApi.dll` missing
+- PIX/RenderDoc not loaded unless launched from those tools
+- XGE license not activated but standalone build continues
+- Android/iOS/Linux/Mac SDK not installed
+- DerivedDataCache/Zen cache housekeeping
+- profiling/debugging plugins not active
 
-Phase 002G changes `Config/DefaultGame.ini` from brace GUID format to Unreal struct-style `ProjectID=(A=...,B=...,C=...,D=...)`.
+Important pass signal:
+
+- `Rebuild All: 1 succeeded, 0 failed, 0 skipped`
 
 ## Engineering rules
 
@@ -79,16 +85,14 @@ Use truth-first engineering:
 
 ## Immediate next task for future assistant
 
-After Phase 002G is pushed, verify:
+After Phase 002H is pushed, verify:
 
-- `Config/DefaultGame.ini`
 - `Config/CICADAForgeState.ini`
 - `Plugins/CICADAForge/Source/CICADAForgeEditor/Private/CICADAForgeEditorModule.cpp`
-- `docs/checklists/PHASE_002G_SMOKE_TEST.md`
+- `docs/checklists/PHASE_002H_SMOKE_TEST.md`
 
 Then ask the user for:
-- screenshot showing right-rail Last Action update
+- screenshot showing Event Log entries accumulating
 - whether Output Log still has safe stub click logs
-- whether ProjectID import warning is gone
 
-Do not move to Phase 002H until Last Action mirror works.
+Do not move to Phase 002I until Event Log accumulation works.

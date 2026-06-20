@@ -6,6 +6,7 @@
 #include "Framework/MultiBox/MultiBoxBuilder.h"
 #include "Input/Reply.h"
 #include "Logging/LogMacros.h"
+#include "Templates/SharedPointer.h"
 #include "ToolMenus.h"
 #include "Widgets/Docking/SDockTab.h"
 #include "Widgets/Input/SButton.h"
@@ -48,10 +49,58 @@ namespace CICADAForgeEditorUI
             ];
     }
 
+    static FString BuildEventLogText(const TSharedRef<TArray<FString>>& EventLogLines)
+    {
+        FString EventLogText = TEXT("Event Log:");
+
+        if (EventLogLines->Num() == 0)
+        {
+            EventLogText += TEXT("\nWaiting for safe UI events.");
+            return EventLogText;
+        }
+
+        for (int32 Index = 0; Index < EventLogLines->Num(); ++Index)
+        {
+            EventLogText += FString::Printf(
+                TEXT("\n%d. %s"),
+                Index + 1,
+                *(*EventLogLines)[Index]
+            );
+        }
+
+        return EventLogText;
+    }
+
+    static TSharedRef<SWidget> MakeLiveStatusCard(const FText& Title, const TSharedRef<STextBlock>& LiveText)
+    {
+        return SNew(SBorder)
+            .Padding(10)
+            [
+                SNew(SVerticalBox)
+
+                + SVerticalBox::Slot()
+                .AutoHeight()
+                .Padding(0, 0, 0, 6)
+                [
+                    SNew(STextBlock)
+                    .Text(Title)
+                    .AutoWrapText(true)
+                ]
+
+                + SVerticalBox::Slot()
+                .AutoHeight()
+                [
+                    LiveText
+                ]
+            ];
+    }
+
     static TSharedRef<SWidget> MakeActionButton(
         const FText& Label,
         const TSharedRef<STextBlock>& VisibleActionStatus,
-        const TSharedRef<STextBlock>& LastActionStatus
+        const TSharedRef<STextBlock>& LastActionStatus,
+        const TSharedRef<STextBlock>& EventLogStatus,
+        const TSharedRef<TArray<FString>>& EventLogLines
     )
     {
         return SNew(SButton)
@@ -64,8 +113,10 @@ namespace CICADAForgeEditorUI
                 "StubButtonTooltip",
                 "Safe stub only. This updates visible action state, logs an action, and does not modify files, export CAD, or command machines."
             ))
-            .OnClicked_Lambda([Label, VisibleActionStatus, LastActionStatus]()
+            .OnClicked_Lambda([Label, VisibleActionStatus, LastActionStatus, EventLogStatus, EventLogLines]()
             {
+                const FString LabelString = Label.ToString();
+
                 const FText LeftStatus = FText::Format(
                     NSLOCTEXT(
                         "CICADAForgeEditorUI",
@@ -84,10 +135,21 @@ namespace CICADAForgeEditorUI
                     Label
                 );
 
+                EventLogLines->Insert(
+                    FString::Printf(TEXT("%s -> safe stub logged only"), *LabelString),
+                    0
+                );
+
+                while (EventLogLines->Num() > 5)
+                {
+                    EventLogLines->RemoveAt(EventLogLines->Num() - 1);
+                }
+
                 VisibleActionStatus->SetText(LeftStatus);
                 LastActionStatus->SetText(RightStatus);
+                EventLogStatus->SetText(FText::FromString(BuildEventLogText(EventLogLines)));
 
-                UE_LOG(LogCICADAForgeEditor, Display, TEXT("CICADA Forge safe action stub clicked: %s"), *Label.ToString());
+                UE_LOG(LogCICADAForgeEditor, Display, TEXT("CICADA Forge safe action stub clicked: %s"), *LabelString);
                 return FReply::Handled();
             });
     }
@@ -95,7 +157,9 @@ namespace CICADAForgeEditorUI
     static TSharedRef<SWidget> MakeActionList(
         const TArray<FText>& Actions,
         const TSharedRef<STextBlock>& VisibleActionStatus,
-        const TSharedRef<STextBlock>& LastActionStatus
+        const TSharedRef<STextBlock>& LastActionStatus,
+        const TSharedRef<STextBlock>& EventLogStatus,
+        const TSharedRef<TArray<FString>>& EventLogLines
     )
     {
         TSharedRef<SVerticalBox> ActionBox = SNew(SVerticalBox);
@@ -106,7 +170,7 @@ namespace CICADAForgeEditorUI
             .AutoHeight()
             .Padding(0, 0, 0, 6)
             [
-                MakeActionButton(Action, VisibleActionStatus, LastActionStatus)
+                MakeActionButton(Action, VisibleActionStatus, LastActionStatus, EventLogStatus, EventLogLines)
             ];
         }
 
@@ -133,7 +197,9 @@ namespace CICADAForgeEditorUI
     static TSharedRef<SWidget> MakeLeftRail(
         const FCICADAForgeStatusModel& Model,
         const TSharedRef<STextBlock>& VisibleActionStatus,
-        const TSharedRef<STextBlock>& LastActionStatus
+        const TSharedRef<STextBlock>& LastActionStatus,
+        const TSharedRef<STextBlock>& EventLogStatus,
+        const TSharedRef<TArray<FString>>& EventLogLines
     )
     {
         return SNew(SBorder)
@@ -171,7 +237,7 @@ namespace CICADAForgeEditorUI
                 + SVerticalBox::Slot()
                 .AutoHeight()
                 [
-                    MakeActionList(Model.ProjectActions, VisibleActionStatus, LastActionStatus)
+                    MakeActionList(Model.ProjectActions, VisibleActionStatus, LastActionStatus, EventLogStatus, EventLogLines)
                 ]
 
                 + SVerticalBox::Slot()
@@ -213,7 +279,8 @@ namespace CICADAForgeEditorUI
 
     static TSharedRef<SWidget> MakeRightRail(
         const FCICADAForgeStatusModel& Model,
-        const TSharedRef<STextBlock>& LastActionStatus
+        const TSharedRef<STextBlock>& LastActionStatus,
+        const TSharedRef<STextBlock>& EventLogStatus
     )
     {
         return SNew(SBorder)
@@ -234,9 +301,9 @@ namespace CICADAForgeEditorUI
                 .AutoHeight()
                 .Padding(0, 0, 0, 10)
                 [
-                    MakeCard(
+                    MakeLiveStatusCard(
                         NSLOCTEXT("CICADAForgeEditorUI", "LastActionCardTitle", "Last Action"),
-                        LastActionStatus->GetText()
+                        LastActionStatus
                     )
                 ]
 
@@ -244,11 +311,10 @@ namespace CICADAForgeEditorUI
                 .AutoHeight()
                 .Padding(0, 0, 0, 10)
                 [
-                    SNew(SBorder)
-                    .Padding(10)
-                    [
-                        LastActionStatus
-                    ]
+                    MakeLiveStatusCard(
+                        NSLOCTEXT("CICADAForgeEditorUI", "EventLogCardTitle", "Event Log"),
+                        EventLogStatus
+                    )
                 ]
 
                 + SVerticalBox::Slot()
@@ -342,6 +408,13 @@ TSharedRef<SDockTab> FCICADAForgeEditorModule::SpawnForgeTab(const FSpawnTabArgs
         ))
         .AutoWrapText(true);
 
+    TSharedRef<TArray<FString>> EventLogLines = MakeShared<TArray<FString>>();
+
+    TSharedRef<STextBlock> EventLogStatus =
+        SNew(STextBlock)
+        .Text(FText::FromString(CICADAForgeEditorUI::BuildEventLogText(EventLogLines)))
+        .AutoWrapText(true);
+
     return SNew(SDockTab)
         .TabRole(ETabRole::NomadTab)
         [
@@ -377,7 +450,13 @@ TSharedRef<SDockTab> FCICADAForgeEditorModule::SpawnForgeTab(const FSpawnTabArgs
                     .FillWidth(0.22f)
                     .Padding(0, 0, 8, 0)
                     [
-                        CICADAForgeEditorUI::MakeLeftRail(Model, VisibleActionStatus, LastActionStatus)
+                        CICADAForgeEditorUI::MakeLeftRail(
+                            Model,
+                            VisibleActionStatus,
+                            LastActionStatus,
+                            EventLogStatus,
+                            EventLogLines
+                        )
                     ]
 
                     + SHorizontalBox::Slot()
@@ -390,7 +469,7 @@ TSharedRef<SDockTab> FCICADAForgeEditorModule::SpawnForgeTab(const FSpawnTabArgs
                     + SHorizontalBox::Slot()
                     .FillWidth(0.22f)
                     [
-                        CICADAForgeEditorUI::MakeRightRail(Model, LastActionStatus)
+                        CICADAForgeEditorUI::MakeRightRail(Model, LastActionStatus, EventLogStatus)
                     ]
                 ]
 

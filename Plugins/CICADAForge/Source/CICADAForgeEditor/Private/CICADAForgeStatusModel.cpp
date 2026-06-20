@@ -27,7 +27,7 @@ FCICADAForgeStatusModel FCICADAForgeStatusModel::MakeFromProjectState(const FCIC
 
     Model.BottomLog = FText::FromString(
         FString::Printf(
-            TEXT("LOG: Phase 002G last action card is live. Last run: %s"),
+            TEXT("LOG: Phase 002H event log is live. Last run: %s"),
             *ProjectState.LastRunState
         )
     );
@@ -49,7 +49,7 @@ FCICADAForgeStatusModel FCICADAForgeStatusModel::MakeFromProjectState(const FCIC
 
     Model.WorkspaceCards.Add(FCICADAForgePanelCard{
         NSLOCTEXT("CICADAForgeStatusModel", "GateCardTitle", "Current Gate"),
-        NSLOCTEXT("CICADAForgeStatusModel", "GateCardBody", "Gate: prove last-action state mirrors button clicks in both the left rail and right status rail. No CAD export, no machine control, no sidecar calls in this phase.")
+        NSLOCTEXT("CICADAForgeStatusModel", "GateCardBody", "Gate: prove safe UI click events accumulate in the in-memory event log. No persistence, CAD export, sidecar calls, or machine control in this phase.")
     });
 
     Model.StatusCards.Add(FCICADAForgePanelCard{
