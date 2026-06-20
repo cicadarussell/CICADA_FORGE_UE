@@ -6,20 +6,6 @@ Evidence is not decoration. It is how future CICADA sessions avoid inventing fak
 
 Date: 2026-06-20
 
-User machine: Windows PC/laptop, local repo at `C:\CICADA\CICADA_APPS\CICADA_FORGE_UE`
-
-Unreal version: UE5.8 per user report/project target.
-
-## Files checked
-
-- [x] `CICADA_FORGE_UE.uproject`
-- [x] `Plugins/CICADAForge/CICADAForge.uplugin`
-- [x] `Plugins/CICADAForge/Source/CICADAForge/CICADAForge.Build.cs`
-- [x] `Plugins/CICADAForge/Source/CICADAForge/Public/CICADAForgeModule.h`
-- [x] `Plugins/CICADAForge/Source/CICADAForge/Private/CICADAForgeModule.cpp`
-
-## Unreal open result
-
 Verdict:
 
 - [x] PASS
@@ -94,17 +80,41 @@ If Unreal displays old UI text while source is updated, delete root/plugin Binar
 
 ## Phase 002C - Status Model
 
+Date: 2026-06-21
+
+Verdict:
+
+- [x] PASS
+
+Notes:
+
+```text
+User screenshot showed:
+Phase 002C: status model feeds the shell
+LOG: Phase 002C status model loaded.
+```
+
+Standing installer update:
+
+```text
+Future C++ patches should include stale-binary cleaning in the install/test flow where needed.
+```
+
+---
+
+## Phase 002D - Persistent Project State
+
 Date:
 
 Commit hash:
 
 ## Files checked
 
-- [ ] `Plugins/CICADAForge/Source/CICADAForgeEditor/Public/CICADAForgeStatusModel.h`
+- [ ] `Config/CICADAForgeState.ini`
+- [ ] `Plugins/CICADAForge/Source/CICADAForgeEditor/Public/CICADAForgeProjectState.h`
+- [ ] `Plugins/CICADAForge/Source/CICADAForgeEditor/Private/CICADAForgeProjectState.cpp`
 - [ ] `Plugins/CICADAForge/Source/CICADAForgeEditor/Private/CICADAForgeStatusModel.cpp`
-- [ ] `Plugins/CICADAForge/Source/CICADAForgeEditor/Private/CICADAForgeEditorModule.cpp`
-- [ ] `docs/process/UNREAL_STALE_BINARY_FIX.md`
-- [ ] `docs/checklists/PHASE_002C_SMOKE_TEST.md`
+- [ ] `docs/checklists/PHASE_002D_SMOKE_TEST.md`
 
 ## Unreal open result
 
@@ -122,8 +132,9 @@ Notes:
 
 ## Layout result
 
-- [ ] Tab shows `Phase 002C: status model feeds the shell`.
-- [ ] Bottom log shows `LOG: Phase 002C status model loaded.`
+- [ ] Tab shows `Phase 002D: persistent project state feeds the shell`.
+- [ ] Status rail shows `Project State`.
+- [ ] Bottom log shows `LOG: Phase 002D persistent project state loaded.`
 - [ ] Left rail shows `PROJECT`.
 - [ ] Centre area shows `FORGE WORKSPACE`.
 - [ ] Right rail shows `STATUS`.

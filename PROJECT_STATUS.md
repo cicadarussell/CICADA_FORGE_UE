@@ -10,15 +10,15 @@ Mainline.
 
 ## Current phase
 
-Phase Cluster 002C: UI status model feeding the Forge shell.
+Phase Cluster 002D: Persistent project state stub.
 
 ## Completion
 
-Approximate overall project completion: 17 percent.
-Approximate V0 alpha completion: 15 percent.
+Approximate overall project completion: 20 percent.
+Approximate V0 alpha completion: 18 percent.
 Phases completed: 1 / 12.
 
-Phase 002 is not fully passed until the UI shell reads from a status model and evidence is logged.
+Phase 002 is not fully passed until persistent project state is read from config and evidence is logged.
 
 ## Working
 
@@ -30,24 +30,23 @@ Phase 002 is not fully passed until the UI shell reads from a status model and e
 - User reported that the Unreal first-open smoke test worked.
 - User provided screenshot showing Phase 002A Forge tab opened successfully.
 - User provided screenshot showing Phase 002B structured Forge cockpit opened successfully.
+- User provided screenshot showing Phase 002C status model fed the shell successfully.
 - Phase 001B locked the reusable ZIP-to-GitHub development workflow.
-- Phase 002A created the first visible editor tab.
-- Phase 002B created the structured cockpit shell.
-- The Unreal stale-binary fix is recorded as a standing process:
-  delete root/plugin `Binaries` and `Intermediate`, then reopen `.uproject` and rebuild.
+- The Unreal stale-binary fix is now treated as part of the normal installer/test cycle when C++ changes.
 
-## Added in Phase 002C
+## Added in Phase 002D
 
-- Adds `FCICADAForgeStatusModel`.
-- Adds `FCICADAForgePanelCard`.
-- Moves phase/project/action/status text into a single status model.
-- Updates Forge UI to read from the status model instead of scattering hardcoded labels through the layout.
-- Records the Unreal stale compiled binary fix.
-- Records the ZIP-to-GitHub pattern as the standing CICADA app build structure.
+- Adds `Config/CICADAForgeState.ini`.
+- Adds `FCICADAForgeProjectState`.
+- Adds config loading from `Config/CICADAForgeState.ini`.
+- Updates the status model to build UI state from persistent project config.
+- Adds standing stale-binary clean into the phase installer instructions.
+- Adds Phase 002D checklist and evidence section.
 
 ## Not yet built
 
-- No persistent saved project state yet.
+- No editor settings UI yet.
+- No save/write-back to config yet.
 - No interactive buttons yet.
 - No real project browser.
 - No feature graph runtime.
@@ -59,20 +58,20 @@ Phase 002 is not fully passed until the UI shell reads from a status model and e
 
 ## Next action
 
-1. Apply Phase 002C patch.
+1. Apply Phase 002D patch.
 2. Commit and push:
-   `Phase 002C: Add Forge UI status model`
-3. Close Unreal.
-4. If Unreal still shows old text, run the stale-binary clean.
-5. Open Unreal and `Window -> CICADA Forge`.
-6. Confirm UI shows:
-   `Phase 002C: status model feeds the shell`
+   `Phase 002D: Add persistent Forge project state`
+3. Installer should clean stale Unreal binaries after C++ changes.
+4. Open Unreal and `Window -> CICADA Forge`.
+5. Confirm UI shows:
+   `Phase 002D: persistent project state feeds the shell`
+6. Confirm status rail includes `Project State`.
 7. Record result in `docs/evidence/EVIDENCE_LOG.md`.
 8. Push evidence.
 
 ## Current risk
 
-The next likely failure is C++ compile from splitting status data into new files.
+The next likely failure is C++ compile from config-loading code.
 
 If it fails, capture:
 - Unreal popup text

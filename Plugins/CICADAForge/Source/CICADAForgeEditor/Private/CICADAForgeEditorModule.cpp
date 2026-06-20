@@ -235,7 +235,7 @@ void FCICADAForgeEditorModule::RegisterMenus()
 
 TSharedRef<SDockTab> FCICADAForgeEditorModule::SpawnForgeTab(const FSpawnTabArgs& Args)
 {
-    const FCICADAForgeStatusModel Model = FCICADAForgeStatusModel::MakePhase002CDefault();
+    const FCICADAForgeStatusModel Model = FCICADAForgeStatusModel::MakePhase002DDefault();
 
     return SNew(SDockTab)
         .TabRole(ETabRole::NomadTab)

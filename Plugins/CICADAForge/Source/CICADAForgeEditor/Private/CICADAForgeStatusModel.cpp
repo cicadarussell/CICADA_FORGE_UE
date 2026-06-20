@@ -1,16 +1,11 @@
 #include "CICADAForgeStatusModel.h"
 
-FCICADAForgeStatusModel FCICADAForgeStatusModel::MakePhase002CDefault()
+FCICADAForgeStatusModel FCICADAForgeStatusModel::MakeFromProjectState(const FCICADAForgeProjectState& ProjectState)
 {
     FCICADAForgeStatusModel Model;
 
-    Model.ProjectName = TEXT("CICADA_FORGE_UE");
-
-    Model.PhaseLabel = NSLOCTEXT(
-        "CICADAForgeStatusModel",
-        "Phase002CLabel",
-        "Phase 002C: status model feeds the shell"
-    );
+    Model.ProjectName = ProjectState.ProjectName;
+    Model.PhaseLabel = FText::FromString(ProjectState.CurrentPhase);
 
     Model.LeftRailTitle = NSLOCTEXT(
         "CICADAForgeStatusModel",
@@ -30,10 +25,11 @@ FCICADAForgeStatusModel FCICADAForgeStatusModel::MakePhase002CDefault()
         "STATUS"
     );
 
-    Model.BottomLog = NSLOCTEXT(
-        "CICADAForgeStatusModel",
-        "BottomLog",
-        "LOG: Phase 002C status model loaded. Next target: persistent project state."
+    Model.BottomLog = FText::FromString(
+        FString::Printf(
+            TEXT("LOG: Phase 002D persistent project state loaded. Last run: %s"),
+            *ProjectState.LastRunState
+        )
     );
 
     Model.ProjectActions.Add(NSLOCTEXT("CICADAForgeStatusModel", "ActionNewDesign", "[stub] New design"));
@@ -53,28 +49,47 @@ FCICADAForgeStatusModel FCICADAForgeStatusModel::MakePhase002CDefault()
 
     Model.WorkspaceCards.Add(FCICADAForgePanelCard{
         NSLOCTEXT("CICADAForgeStatusModel", "GateCardTitle", "Current Gate"),
-        NSLOCTEXT("CICADAForgeStatusModel", "GateCardBody", "Gate: prove the UI shell reads from one status model. No CAD export, no machine control, no sidecar calls in this phase.")
+        NSLOCTEXT("CICADAForgeStatusModel", "GateCardBody", "Gate: prove persistent config feeds the UI. No CAD export, no machine control, no sidecar calls in this phase.")
+    });
+
+    Model.StatusCards.Add(FCICADAForgePanelCard{
+        NSLOCTEXT("CICADAForgeStatusModel", "ProjectStateCardTitle", "Project State"),
+        FText::FromString(
+            FString::Printf(
+                TEXT("Repo: %s\nPhase source: Config/CICADAForgeState.ini"),
+                *ProjectState.RepoPath
+            )
+        )
     });
 
     Model.StatusCards.Add(FCICADAForgePanelCard{
         NSLOCTEXT("CICADAForgeStatusModel", "EvidenceCardTitle", "Evidence"),
-        NSLOCTEXT("CICADAForgeStatusModel", "EvidenceCardBody", "Manual evidence logging active. Automated screenshots and receipts are later.")
+        FText::FromString(ProjectState.EvidenceState)
     });
 
     Model.StatusCards.Add(FCICADAForgePanelCard{
         NSLOCTEXT("CICADAForgeStatusModel", "SidecarCardTitle", "CAD Sidecar"),
-        NSLOCTEXT("CICADAForgeStatusModel", "SidecarCardBody", "Offline. Phase 005 target. No requests sent.")
+        FText::FromString(ProjectState.CadSidecarState)
     });
 
     Model.StatusCards.Add(FCICADAForgePanelCard{
         NSLOCTEXT("CICADAForgeStatusModel", "MachineCardTitle", "Machine Bridge"),
-        NSLOCTEXT("CICADAForgeStatusModel", "MachineCardBody", "Locked. No physical machine commands exist in V0 shell.")
+        FText::FromString(ProjectState.MachineBridgeState)
     });
 
     Model.StatusCards.Add(FCICADAForgePanelCard{
         NSLOCTEXT("CICADAForgeStatusModel", "SafetyCardTitle", "Safety Boundary"),
-        NSLOCTEXT("CICADAForgeStatusModel", "SafetyCardBody", "All machine actions require future dry run, preview, explicit approval, and logs.")
+        FText::FromString(
+            ProjectState.bMachineCommandsLocked
+                ? TEXT("Machine commands are locked. Future machine actions require dry run, preview, explicit approval, and logs.")
+                : TEXT("WARNING: machine command lock is disabled.")
+        )
     });
 
     return Model;
+}
+
+FCICADAForgeStatusModel FCICADAForgeStatusModel::MakePhase002DDefault()
+{
+    return MakeFromProjectState(FCICADAForgeProjectState::LoadFromConfig());
 }

@@ -34,7 +34,8 @@ Sidecars handle exact manufacturing:
 - Phase 001B locked the reusable ZIP-to-GitHub app workflow.
 - Phase 002A worked by user screenshot: Unreal opened the CICADA Forge tab and showed `Phase 002A: Forge UI shell is alive.`
 - Phase 002B worked by user screenshot: Unreal opened the structured cockpit shell with project/workspace/status/log panels.
-- Current patch is Phase 002C: status model feeding the shell.
+- Phase 002C worked by user screenshot: status model fed the UI shell.
+- Current patch is Phase 002D: persistent project state stub.
 
 ## Standing CICADA app development workflow
 
@@ -44,10 +45,11 @@ Use this pattern for this repo and future CICADA apps:
 2. ChatGPT gives completion percentages.
 3. User downloads ZIP.
 4. User runs a PowerShell extractor into the local repo root.
-5. User commits and pushes through GitHub Desktop.
-6. ChatGPT reads GitHub and verifies.
-7. User asks for next phase cluster.
-8. Repeat.
+5. Installer includes stale Unreal binary clean when C++ changes are likely.
+6. User commits and pushes through GitHub Desktop.
+7. ChatGPT reads GitHub and verifies.
+8. User asks for next phase cluster.
+9. Repeat.
 
 This is the default structure until direct repo write automation is available.
 
@@ -66,7 +68,7 @@ If GitHub/local source shows a newer phase but Unreal still displays old UI text
 4. Allow one rebuild.
 5. Re-test the tab.
 
-This fixed the Phase 002B stale UI issue.
+This fixed the Phase 002B stale UI issue and was also required after Phase 002C.
 
 ## Engineering rules
 
@@ -83,14 +85,14 @@ Use truth-first engineering:
 
 ## Immediate next task for future assistant
 
-After Phase 002C is pushed, verify:
+After Phase 002D is pushed, verify:
 
-- `Plugins/CICADAForge/Source/CICADAForgeEditor/Public/CICADAForgeStatusModel.h`
+- `Config/CICADAForgeState.ini`
+- `Plugins/CICADAForge/Source/CICADAForgeEditor/Public/CICADAForgeProjectState.h`
+- `Plugins/CICADAForge/Source/CICADAForgeEditor/Private/CICADAForgeProjectState.cpp`
 - `Plugins/CICADAForge/Source/CICADAForgeEditor/Private/CICADAForgeStatusModel.cpp`
-- `Plugins/CICADAForge/Source/CICADAForgeEditor/Private/CICADAForgeEditorModule.cpp`
-- `docs/process/UNREAL_STALE_BINARY_FIX.md`
-- `docs/checklists/PHASE_002C_SMOKE_TEST.md`
+- `docs/checklists/PHASE_002D_SMOKE_TEST.md`
 
 Then ask the user for the Unreal result.
 
-Do not move to Phase 003 until the UI reads from the status model or the compile/layout failure is understood.
+Do not move to Phase 002E until persistent project state appears in the UI or the compile/config failure is understood.

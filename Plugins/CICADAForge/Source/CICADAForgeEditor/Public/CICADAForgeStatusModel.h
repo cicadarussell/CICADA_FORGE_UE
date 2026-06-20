@@ -1,6 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "CICADAForgeProjectState.h"
 
 struct FCICADAForgePanelCard
 {
@@ -21,5 +22,6 @@ struct FCICADAForgeStatusModel
     TArray<FCICADAForgePanelCard> WorkspaceCards;
     TArray<FCICADAForgePanelCard> StatusCards;
 
-    static FCICADAForgeStatusModel MakePhase002CDefault();
+    static FCICADAForgeStatusModel MakeFromProjectState(const FCICADAForgeProjectState& ProjectState);
+    static FCICADAForgeStatusModel MakePhase002DDefault();
 };
