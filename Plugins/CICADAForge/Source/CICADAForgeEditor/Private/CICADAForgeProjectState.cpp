@@ -9,11 +9,11 @@ FCICADAForgeProjectState FCICADAForgeProjectState::MakeDefault()
 
     State.ProjectName = TEXT("CICADA_FORGE_UE");
     State.RepoPath = TEXT("C:\\CICADA\\CICADA_APPS\\CICADA_FORGE_UE");
-    State.CurrentPhase = TEXT("Phase 002J: evidence receipt cockpit is alive");
-    State.EvidenceState = TEXT("Phase 002I assumed passed by user instruction; evidence cockpit now memory-only");
+    State.CurrentPhase = TEXT("Phase 002K: debug cockpit and receipt dry-run are alive");
+    State.EvidenceState = TEXT("Phase 002J assumed locally working by user report; Phase 002K adds debug tooling and explicit receipt dry-run");
     State.CadSidecarState = TEXT("Offline - Phase 005 target");
     State.MachineBridgeState = TEXT("Locked - no physical machine commands in V0 shell");
-    State.LastRunState = TEXT("Phase 002I assumed passed; moving faster with bundled evidence cockpit cluster");
+    State.LastRunState = TEXT("Phase 002J UI changed and looked good; moving to larger focused debug cluster");
     State.bMachineCommandsLocked = true;
 
     return State;

@@ -27,7 +27,7 @@ FCICADAForgeStatusModel FCICADAForgeStatusModel::MakeFromProjectState(const FCIC
 
     Model.BottomLog = FText::FromString(
         FString::Printf(
-            TEXT("LOG: Phase 002J evidence receipt cockpit is live. Last run: %s"),
+            TEXT("LOG: Phase 002K debug cockpit and receipt dry-run are live. Last run: %s"),
             *ProjectState.LastRunState
         )
     );
@@ -49,7 +49,7 @@ FCICADAForgeStatusModel FCICADAForgeStatusModel::MakeFromProjectState(const FCIC
 
     Model.WorkspaceCards.Add(FCICADAForgePanelCard{
         NSLOCTEXT("CICADAForgeStatusModel", "GateCardTitle", "Current Gate"),
-        NSLOCTEXT("CICADAForgeStatusModel", "GateCardBody", "Gate: prove evidence stubs, receipt preview, session metadata, and event log all update safely in memory. No file writes, CAD export, sidecar calls, or machine control in this phase.")
+        NSLOCTEXT("CICADAForgeStatusModel", "GateCardBody", "Gate: prove memory evidence controls, diagnostics, receipt preview, and explicit local receipt dry-run behave safely. File writes are limited to Saved/CICADAForge/Receipts only.")
     });
 
     Model.StatusCards.Add(FCICADAForgePanelCard{

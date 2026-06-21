@@ -6,19 +6,19 @@ CICADA FORGE UE / CICADA SINGULARITY
 
 ## Build type
 
-Mainline.
+Mainline cumulative patch.
 
 ## Current phase
 
-Phase Cluster 002J: Evidence receipt cockpit.
+Phase Cluster 002K: Debug cockpit and receipt dry-run.
 
 ## Completion
 
-Approximate overall project completion: 40 percent.
-Approximate V0 alpha completion: 37 percent.
+Approximate overall project completion: 45 percent.
+Approximate V0 alpha completion: 42 percent.
 Phases completed: 1 / 12.
 
-Phase 002 is now a larger cockpit cluster: actions, session metadata, event log, and memory-only evidence receipt preview.
+Phase 002 is now a larger cockpit/debug cluster: actions, session metadata, event log, evidence receipt preview, diagnostics, and explicit local dry-run receipt saving.
 
 ## Working
 
@@ -34,34 +34,31 @@ Phase 002 is now a larger cockpit cluster: actions, session metadata, event log,
 - Phase 002G added mirrored Last Action status.
 - Phase 002H added an in-memory Event Log.
 - Phase 002I is assumed passed by user instruction.
+- Phase 002J is assumed locally working by user report: UI changed and looked good.
 - Output logs are noisy but module rebuilds have succeeded.
 - The Unreal stale-binary fix is part of the installer/test cycle when C++ changes.
 - Persistent project state reads from `Config/CICADAForgeState.ini`.
 
-## Added in Phase 002J
+## Added in Phase 002K
 
-- Adds right-rail `Evidence Receipt Preview`.
-- Adds centre `Evidence Receipt Controls`.
-- Adds memory-only evidence stub buttons:
-  - Screenshot observed
-  - Output log checked
-  - UI pass candidate
-- Adds system stub button:
-  - Clear visible event log
-- Adds shared mutable UI state object.
-- Tracks:
-  - total safe event count
-  - last action
-  - last evidence marker
-  - receipt readiness
-- Updates session metadata, event log, last action, and receipt preview from the same UI state.
-- Still no file writes, CAD export, sidecar calls, or machine commands.
+- Keeps the 002J evidence receipt cockpit.
+- Adds right-rail `Diagnostics`.
+- Adds debug buttons:
+  - Run UI state self-check
+  - Classify known log noise
+- Adds explicit local dry-run receipt save button.
+- Receipt writes are limited to:
+  `Saved/CICADAForge/Receipts`
+- Receipt output is JSON text.
+- Adds receipt write count.
+- Adds last receipt path display.
+- Event log now keeps latest eight entries.
+- Updates session metadata, diagnostics, event log, last action, and receipt preview from shared state.
+- Adds standalone PowerShell log quickscan script.
+- Still no CAD export, no sidecar calls, no automated screenshot capture, and no machine commands.
 
 ## Not yet built
 
-- No persistent receipt save yet.
-- No editor settings UI yet.
-- No save/write-back to config yet.
 - No real project browser.
 - No feature graph runtime.
 - No CAD sidecar client.
@@ -72,17 +69,20 @@ Phase 002 is now a larger cockpit cluster: actions, session metadata, event log,
 
 ## Next action
 
-1. Apply Phase 002J patch.
+1. Apply Phase 002K patch.
 2. Commit and push:
-   `Phase 002J: Add Forge evidence receipt cockpit`
+   `Phase 002K: Add Forge debug cockpit and receipt dry-run`
 3. Test action buttons.
 4. Test evidence buttons.
-5. Confirm receipt preview updates.
-6. Confirm no file export, CAD call, sidecar call, or machine command occurs.
+5. Test diagnostics buttons.
+6. Test dry-run receipt save.
+7. Confirm receipt appears under:
+   `Saved/CICADAForge/Receipts`
+8. Confirm no CAD export, sidecar call, or machine command occurs.
 
 ## Current risk
 
-The next likely failure is Slate lambda/shared-state compile syntax from bundling a larger UI cluster.
+This is a larger C++/Slate patch. The next likely failure is lambda/shared-state compile syntax or local receipt file writing.
 
 If it fails, capture:
 - Unreal popup text

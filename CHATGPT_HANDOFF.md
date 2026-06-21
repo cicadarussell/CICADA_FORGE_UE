@@ -30,7 +30,8 @@ Sidecars handle exact manufacturing:
 - Phase 002G worked: mirrored Last Action status.
 - Phase 002H worked by user report: Event Log and Output Log show safe click events.
 - Phase 002I was assumed passed per user instruction.
-- Current patch is Phase 002J: evidence receipt cockpit.
+- Phase 002J was assumed locally working by user report: user said the UI changed and looked good.
+- Current patch is Phase 002K: debug cockpit and receipt dry-run.
 
 ## Standing CICADA app development workflow
 
@@ -68,11 +69,28 @@ Noisy but non-blocking lines observed include:
 - DerivedDataCache/Zen cache housekeeping
 - EOS SDK periodic config updates
 - occasional audio buffer underrun when idle/under load
+- lots of Engine plugin mounting
+- SDK checks for platforms not currently targeted
 
 Important pass signal:
 
 - `Rebuild All: 1 succeeded, 0 failed, 0 skipped`
 - `LogCICADAForgeEditor: Display: CICADA Forge safe action stub clicked: ...`
+
+## Phase 002K scope
+
+Adds:
+- Evidence + Debug Controls
+- Evidence Receipt Preview
+- Diagnostics panel
+- explicit local dry-run receipt save to `Saved/CICADAForge/Receipts`
+- log quickscan PowerShell script
+
+Still does not add:
+- CAD sidecar
+- machine bridge
+- automated screenshot capture
+- real product generation
 
 ## Engineering rules
 
@@ -89,16 +107,17 @@ Use truth-first engineering:
 
 ## Immediate next task for future assistant
 
-After Phase 002J is pushed, verify:
+After Phase 002K is pushed, verify:
 
 - `Config/CICADAForgeState.ini`
 - `Plugins/CICADAForge/Source/CICADAForgeEditor/Private/CICADAForgeEditorModule.cpp`
-- `docs/checklists/PHASE_002J_SMOKE_TEST.md`
+- `docs/checklists/PHASE_002K_SMOKE_TEST.md`
+- `scripts/diagnostics/cicada_unreal_log_quickscan.ps1`
 
 Then ask the user for:
-- screenshot showing Evidence Receipt Preview
-- whether evidence buttons update receipt state
-- whether action buttons still update Last Action/Event Log
+- screenshot showing Diagnostics + Evidence Receipt Preview
+- whether dry-run receipt saved under `Saved/CICADAForge/Receipts`
+- whether action/evidence/debug buttons update panels correctly
 - whether Output Log still has safe stub click logs
 
-Do not move to Phase 002K until the larger evidence cockpit cluster works or the compile failure is understood.
+Do not move to Phase 003 until Phase 002K passes or the compile failure is understood.

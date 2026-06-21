@@ -90,13 +90,21 @@ Verdict:
 
 - [x] ASSUMED PASS by user instruction
 
+## Phase 002J - Evidence Receipt Cockpit
+
+Date: 2026-06-21
+
+Verdict:
+
+- [x] ASSUMED LOCAL PASS by user report
+
 Notes:
 
 ```text
-User asked to assume it worked and continue with a larger phase cluster.
+User said: pressed all 4 buttons, UI changed, looks good.
 ```
 
-## Phase 002J - Evidence Receipt Cockpit
+## Phase 002K - Debug Cockpit and Receipt Dry-run
 
 Date:
 
@@ -106,7 +114,8 @@ Commit hash:
 
 - [ ] `Config/CICADAForgeState.ini`
 - [ ] `Plugins/CICADAForge/Source/CICADAForgeEditor/Private/CICADAForgeEditorModule.cpp`
-- [ ] `docs/checklists/PHASE_002J_SMOKE_TEST.md`
+- [ ] `docs/checklists/PHASE_002K_SMOKE_TEST.md`
+- [ ] `scripts/diagnostics/cicada_unreal_log_quickscan.ps1`
 
 ## Unreal open result
 
@@ -124,17 +133,17 @@ Notes:
 
 ## UI result
 
-- [ ] Evidence Receipt Controls appears.
+- [ ] Evidence + Debug Controls appears.
 - [ ] Evidence Receipt Preview appears.
-- [ ] Receipt Preview starts waiting for evidence.
-- [ ] Screenshot observed updates receipt preview.
-- [ ] Output log checked updates receipt preview.
-- [ ] UI pass candidate updates receipt preview.
-- [ ] Action buttons still update selected action and Last Action.
-- [ ] Event Log still records action/evidence/system events.
-- [ ] Session Metadata count updates.
-- [ ] Clear visible event log works.
+- [ ] Diagnostics appears.
+- [ ] Action buttons still update UI.
+- [ ] Evidence buttons update receipt preview.
+- [ ] Debug buttons update Diagnostics.
+- [ ] Save local dry-run receipt writes JSON under Saved/CICADAForge/Receipts.
+- [ ] Receipt Preview shows path.
+- [ ] Log quickscan script runs.
 - [ ] No CAD export occurred.
+- [ ] No sidecar call occurred.
 - [ ] No machine command occurred.
 
 ## Output log / error
