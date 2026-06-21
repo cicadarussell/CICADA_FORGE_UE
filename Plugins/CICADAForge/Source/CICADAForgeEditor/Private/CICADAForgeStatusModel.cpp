@@ -7,27 +7,13 @@ FCICADAForgeStatusModel FCICADAForgeStatusModel::MakeFromProjectState(const FCIC
     Model.ProjectName = ProjectState.ProjectName;
     Model.PhaseLabel = FText::FromString(ProjectState.CurrentPhase);
 
-    Model.LeftRailTitle = NSLOCTEXT(
-        "CICADAForgeStatusModel",
-        "LeftRailTitle",
-        "PROJECT"
-    );
-
-    Model.WorkspaceTitle = NSLOCTEXT(
-        "CICADAForgeStatusModel",
-        "WorkspaceTitle",
-        "FORGE WORKSPACE"
-    );
-
-    Model.StatusTitle = NSLOCTEXT(
-        "CICADAForgeStatusModel",
-        "StatusTitle",
-        "STATUS"
-    );
+    Model.LeftRailTitle = NSLOCTEXT("CICADAForgeStatusModel", "LeftRailTitle", "PROJECT");
+    Model.WorkspaceTitle = NSLOCTEXT("CICADAForgeStatusModel", "WorkspaceTitle", "FORGE WORKSPACE");
+    Model.StatusTitle = NSLOCTEXT("CICADAForgeStatusModel", "StatusTitle", "STATUS");
 
     Model.BottomLog = FText::FromString(
         FString::Printf(
-            TEXT("LOG: Phase 002K debug cockpit and receipt dry-run are live. Last run: %s"),
+            TEXT("LOG: Phase 002L scrollable backend debug cockpit is live. Last run: %s"),
             *ProjectState.LastRunState
         )
     );
@@ -39,17 +25,17 @@ FCICADAForgeStatusModel FCICADAForgeStatusModel::MakeFromProjectState(const FCIC
 
     Model.WorkspaceCards.Add(FCICADAForgePanelCard{
         NSLOCTEXT("CICADAForgeStatusModel", "GraphCardTitle", "Feature Graph Placeholder"),
-        NSLOCTEXT("CICADAForgeStatusModel", "GraphCardBody", "Future home of parametric design intent: dimensions, primitives, operations, constraints, validation state, and export receipts.")
+        NSLOCTEXT("CICADAForgeStatusModel", "GraphCardBody", "Feature graph UI is not built yet. Phase 003A should introduce an internal feature graph data model before visual nodes.")
     });
 
     Model.WorkspaceCards.Add(FCICADAForgePanelCard{
         NSLOCTEXT("CICADAForgeStatusModel", "PreviewCardTitle", "Preview Placeholder"),
-        NSLOCTEXT("CICADAForgeStatusModel", "PreviewCardBody", "Unreal viewport/preview integration comes later. Manufacturing truth will still come from the feature graph and CAD sidecar, not raw editor mesh vibes.")
+        NSLOCTEXT("CICADAForgeStatusModel", "PreviewCardBody", "Viewport/preview integration is not built yet. Manufacturing truth will come from feature graph and CAD sidecar contracts, not raw editor mesh vibes.")
     });
 
     Model.WorkspaceCards.Add(FCICADAForgePanelCard{
         NSLOCTEXT("CICADAForgeStatusModel", "GateCardTitle", "Current Gate"),
-        NSLOCTEXT("CICADAForgeStatusModel", "GateCardBody", "Gate: prove memory evidence controls, diagnostics, receipt preview, and explicit local receipt dry-run behave safely. File writes are limited to Saved/CICADAForge/Receipts only.")
+        NSLOCTEXT("CICADAForgeStatusModel", "GateCardBody", "Gate: fix overflow, expose backend readiness, and prove debug controls identify what is working, stubbed, not built, and locked.")
     });
 
     Model.StatusCards.Add(FCICADAForgePanelCard{

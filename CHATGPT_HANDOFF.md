@@ -30,94 +30,49 @@ Sidecars handle exact manufacturing:
 - Phase 002G worked: mirrored Last Action status.
 - Phase 002H worked by user report: Event Log and Output Log show safe click events.
 - Phase 002I was assumed passed per user instruction.
-- Phase 002J was assumed locally working by user report: user said the UI changed and looked good.
-- Current patch is Phase 002K: debug cockpit and receipt dry-run.
-
-## Standing CICADA app development workflow
-
-Use this pattern for this repo and future CICADA apps:
-
-1. ChatGPT gives a ZIP download link at the top.
-2. ChatGPT gives completion percentages.
-3. User downloads ZIP.
-4. User runs a PowerShell extractor into the local repo root.
-5. Installer includes stale Unreal binary clean when C++ changes are likely.
-6. User commits and pushes through GitHub Desktop.
-7. ChatGPT reads GitHub and verifies.
-8. User asks for next phase cluster.
-9. Repeat.
-
-## Standing Unreal stale-binary fix
-
-If GitHub/local source shows a newer phase but Unreal still displays old UI text:
-
-1. Close Unreal fully.
-2. Delete root/plugin `Binaries`, `Intermediate`, and root `Saved`.
-3. Reopen `.uproject`.
-4. Allow one rebuild.
-5. Re-test the tab.
+- Phase 002J worked by user report/log.
+- Phase 002K worked visually by screenshot; user reported right side started overflowing.
+- Current patch is Phase 002L: scrollable backend debug cockpit.
 
 ## Output-log interpretation
 
 Noisy but non-blocking lines observed include:
 
+- `DerivedDataCache maintenance finished`
+- `EOSSDK Config Product Update Request Completed - No Change`
+- Slate Roboto font lazy loading
 - `aqProf.dll` missing
 - `VtuneApi.dll` missing
 - PIX/RenderDoc not loaded unless launched from those tools
 - XGE license not activated but standalone build continues
 - Android/iOS/Linux/Mac SDK not installed
-- DerivedDataCache/Zen cache housekeeping
-- EOS SDK periodic config updates
 - occasional audio buffer underrun when idle/under load
-- lots of Engine plugin mounting
-- SDK checks for platforms not currently targeted
 
-Important pass signal:
+Important pass signals:
 
 - `Rebuild All: 1 succeeded, 0 failed, 0 skipped`
 - `LogCICADAForgeEditor: Display: CICADA Forge safe action stub clicked: ...`
-
-## Phase 002K scope
-
-Adds:
-- Evidence + Debug Controls
-- Evidence Receipt Preview
-- Diagnostics panel
-- explicit local dry-run receipt save to `Saved/CICADAForge/Receipts`
-- log quickscan PowerShell script
-
-Still does not add:
-- CAD sidecar
-- machine bridge
-- automated screenshot capture
-- real product generation
+- `LogCICADAForgeEditor: Display: CICADA Forge receipt dry-run save: ...`
 
 ## Engineering rules
 
-Use truth-first engineering:
-
-- separate facts, assumptions, speculation, unknowns
+- truth-first engineering
 - no fake working claims
 - no silent branch drift
-- no rebuilding from scratch when patching one layer
 - keep evidence logs
 - use phase clusters
-- always preserve mainline project state
+- preserve mainline project state
 - machine actions must be gated
 
-## Immediate next task for future assistant
+## Immediate next task
 
-After Phase 002K is pushed, verify:
-
+After Phase 002L is pushed, verify:
 - `Config/CICADAForgeState.ini`
 - `Plugins/CICADAForge/Source/CICADAForgeEditor/Private/CICADAForgeEditorModule.cpp`
-- `docs/checklists/PHASE_002K_SMOKE_TEST.md`
-- `scripts/diagnostics/cicada_unreal_log_quickscan.ps1`
+- `docs/checklists/PHASE_002L_SMOKE_TEST.md`
+- `docs/debug/UNREAL_OUTPUT_LOG_TRIAGE.md`
 
-Then ask the user for:
-- screenshot showing Diagnostics + Evidence Receipt Preview
-- whether dry-run receipt saved under `Saved/CICADAForge/Receipts`
-- whether action/evidence/debug buttons update panels correctly
-- whether Output Log still has safe stub click logs
-
-Do not move to Phase 003 until Phase 002K passes or the compile failure is understood.
+Then ask for:
+- screenshot showing scrollable right rail no longer cutting off
+- whether Backend Inspector and Backend Health are useful
+- whether `Show backend map` clearly lists working/not-built/locked systems

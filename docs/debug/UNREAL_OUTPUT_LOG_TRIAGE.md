@@ -4,26 +4,22 @@
 
 Stop losing time to normal Unreal noise.
 
-Unreal logs like a paranoid cathedral. Not every warning is a project failure.
+Unreal logs like a haunted switchboard. Not every warning is a project failure.
 
 ## Known non-blocking noise seen so far
 
-These are usually not blockers for the current Win64 editor-only CICADA Forge test:
+Usually not blockers for the current Win64 editor-only CICADA Forge test:
 
+- `DerivedDataCache: Maintenance finished... deleted 0 files`
+- `EOSSDK: SDK Config Product Update Request Completed - No Change`
+- `EOSSDK: ScheduleNextSDKConfigDataUpdate`
+- Slate Roboto font lazy loading
 - `aqProf.dll` missing
 - `VtuneApi.dll` missing
-- `VtuneApi32e.dll` missing
 - PIX capture plugin not initialized
 - RenderDoc not loaded unless launched with RenderDoc
 - XGE license not activated, standalone mode used
-- Android SDK missing
-- IOS SDK missing
-- Linux SDK missing
-- Mac SDK missing
-- TVOS SDK missing
-- DerivedDataCache maintenance
-- Zen cache startup/maintenance
-- EOS SDK config update/no change
+- Android/iOS/Linux/Mac SDK checks
 - one-off audio buffer underrun
 - source control disabled
 
@@ -36,7 +32,7 @@ Rebuild All: 1 succeeded, 0 failed, 0 skipped
 Result: Succeeded
 CICADA Forge safe action stub clicked:
 CICADA Forge evidence stub clicked:
-CICADA Forge debug stub clicked:
+CICADA Forge debug/evidence stub clicked:
 CICADA Forge receipt dry-run save:
 ```
 
@@ -60,9 +56,7 @@ Rebuild All: 0 succeeded
 Noise can be ignored only if:
 
 1. build succeeds
-2. the Forge tab opens
+2. Forge tab opens
 3. expected Phase text appears
 4. CICADA Forge click logs appear
 5. no crash occurs
-
-Otherwise, treat it as a real failure and capture the relevant lines.

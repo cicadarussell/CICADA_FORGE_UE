@@ -9,11 +9,11 @@ FCICADAForgeProjectState FCICADAForgeProjectState::MakeDefault()
 
     State.ProjectName = TEXT("CICADA_FORGE_UE");
     State.RepoPath = TEXT("C:\\CICADA\\CICADA_APPS\\CICADA_FORGE_UE");
-    State.CurrentPhase = TEXT("Phase 002K: debug cockpit and receipt dry-run are alive");
-    State.EvidenceState = TEXT("Phase 002J assumed locally working by user report; Phase 002K adds debug tooling and explicit receipt dry-run");
-    State.CadSidecarState = TEXT("Offline - Phase 005 target");
+    State.CurrentPhase = TEXT("Phase 002L: scrollable backend debug cockpit is alive");
+    State.EvidenceState = TEXT("Phase 002K passed visually; layout overflow and backend visibility are now targeted");
+    State.CadSidecarState = TEXT("Not built - planned Phase 005");
     State.MachineBridgeState = TEXT("Locked - no physical machine commands in V0 shell");
-    State.LastRunState = TEXT("Phase 002J UI changed and looked good; moving to larger focused debug cluster");
+    State.LastRunState = TEXT("Phase 002K UI worked; next issue is layout overflow and backend visibility");
     State.bMachineCommandsLocked = true;
 
     return State;

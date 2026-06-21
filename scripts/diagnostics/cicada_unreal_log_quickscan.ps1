@@ -28,11 +28,11 @@ $Text = Get-Content $Log.FullName -Raw
 
 $patterns = [ordered]@{
     "BuildSucceeded" = "Rebuild All: 1 succeeded|Result: Succeeded"
-    "BuildFailed" = "Rebuild All: 0 succeeded|Result: Failed|UnrealBuildTool failed"
+    "BuildFailed" = "Rebuild All: 0 succeeded|Result: Failed|UnrealBuildTool failed|Module could not be loaded"
     "CICADAForgeLines" = "CICADA Forge"
     "Errors" = " error |error C|fatal error|LNK[0-9]+"
     "Warnings" = "Warning:| warning "
-    "KnownNoise" = "aqProf|VtuneApi|WinPix|RenderDoc|XGE|DerivedDataCache|Zen|EOSSDK|Failed to SetupSDK|Audio Buffer Underrun|SourceControl: Revision control is disabled"
+    "KnownNoise" = "aqProf|VtuneApi|WinPix|RenderDoc|XGE|DerivedDataCache|Zen|EOSSDK|Slate.*Roboto|Failed to SetupSDK|Audio Buffer Underrun|SourceControl: Revision control is disabled"
     "MachineRisk" = "GCode|CNC|printer|machine bridge|serial|COM[0-9]|M104|G1 "
     "ReceiptDryRun" = "receipt dry-run|Saved/CICADAForge/Receipts|CICADAForgeReceipt"
 }
@@ -57,7 +57,7 @@ if ($Text -match "Rebuild All: 1 succeeded|Result: Succeeded") {
     Write-Host "NO PASS SIGNAL: build success marker not found in latest log."
 }
 
-if ($Text -match "fatal error|UnrealBuildTool failed|Result: Failed") {
+if ($Text -match "fatal error|UnrealBuildTool failed|Result: Failed|Module could not be loaded") {
     Write-Host "FAIL SIGNAL: real build failure marker found."
 } else {
     Write-Host "NO OBVIOUS BUILD FAILURE MARKER."
