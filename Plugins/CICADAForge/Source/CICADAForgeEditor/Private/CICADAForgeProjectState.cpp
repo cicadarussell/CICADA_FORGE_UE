@@ -9,11 +9,11 @@ FCICADAForgeProjectState FCICADAForgeProjectState::MakeDefault()
 
     State.ProjectName = TEXT("CICADA_FORGE_UE");
     State.RepoPath = TEXT("C:\\CICADA\\CICADA_APPS\\CICADA_FORGE_UE");
-    State.CurrentPhase = TEXT("Phase 003I: CAD sidecar contract and exact-geometry boundary are alive");
-    State.EvidenceState = TEXT("Headless STL/job/report/dashboard path is working; Phase 003I adds CAD sidecar contract, part schema, example mechanical parts, and STEP-readiness diagnostics");
-    State.CadSidecarState = TEXT("CAD sidecar V0 contract built; CadQuery/FreeCAD engine optional and detected by doctor; no fake STEP if engine missing");
-    State.MachineBridgeState = TEXT("Locked - exact-geometry sidecar is local/export-only; no printer/CNC/pick-place command path");
-    State.LastRunState = TEXT("Project is on track: headless outputs, dashboard, and CAD truth boundary now exist");
+    State.CurrentPhase = TEXT("Phase 003J: CAD builder and PowerShell switch fix are alive");
+    State.EvidenceState = TEXT("003I audit, cad-doctor, cad-validate, dashboard passed; Phase 003J fixes PowerShell switch forwarding and adds CAD part builders/full-check");
+    State.CadSidecarState = TEXT("CAD sidecar V0 contract plus mechanical part builder; CadQuery/FreeCAD still optional and detected by doctor; no fake STEP if engine missing");
+    State.MachineBridgeState = TEXT("Locked - CAD builder writes intent/reports/optional exports only; no printer/CNC/pick-place command path");
+    State.LastRunState = TEXT("Project is on track: PowerShell wrapper bug fixed and CAD builder path added");
     State.bMachineCommandsLocked = true;
 
     return State;

@@ -15,10 +15,7 @@ from typing import Any
 
 
 DEFAULT_REPO = Path(os.environ.get("CICADA_FORGE_REPO", r"C:\CICADA\CICADA_APPS\CICADA_FORGE_UE"))
-
-
-class CadSidecarError(RuntimeError):
-    pass
+SUPPORTED_SCHEMAS = {"cicada_part_v0_1", "cicada_part_v0_2"}
 
 
 @dataclass(frozen=True)
@@ -35,38 +32,34 @@ class CicadaCadSidecar:
         self.repo = repo
         self.saved = repo / "Saved" / "CICADAForge"
         self.parts_dir = repo / "examples" / "cad_parts"
-        self.schema_path = repo / "tools" / "cicada_cad_sidecar" / "schemas" / "cicada_part_schema_v0_1.json"
+        self.schema_path = repo / "tools" / "cicada_cad_sidecar" / "schemas" / "cicada_part_schema_v0_2.json"
         self.export_dir = self.saved / "CADExports"
         self.report_dir = self.saved / "CADReports"
         self.intent_dir = self.saved / "CADIntent"
 
     def engine_state(self, preferred: str = "auto") -> CadEngineState:
+        # No fake STEP: STEP export is allowed only when an exact CAD engine actually exists.
         cadquery_available = importlib.util.find_spec("cadquery") is not None
         freecad_available = importlib.util.find_spec("FreeCAD") is not None
 
         notes: list[str] = []
+        notes.append("CadQuery module detected: exact STEP/STL export path can be attempted." if cadquery_available else "CadQuery module not detected.")
+        notes.append("FreeCAD module detected: FreeCAD bridge can be developed/used later." if freecad_available else "FreeCAD module not detected in current Python environment.")
 
-        if cadquery_available:
-            notes.append("CadQuery module detected: exact STEP/STL export path can be attempted.")
-        else:
-            notes.append("CadQuery module not detected.")
-
-        if freecad_available:
-            notes.append("FreeCAD module detected: FreeCAD bridge can be developed/used later.")
-        else:
-            notes.append("FreeCAD module not detected in current Python environment.")
-
-        if preferred == "cadquery" and not cadquery_available:
+        if preferred == "none":
             selected = "none"
-            notes.append("Requested CadQuery but it is unavailable.")
-        elif preferred == "freecad" and not freecad_available:
-            selected = "none"
-            notes.append("Requested FreeCAD but it is unavailable.")
+            notes.append("Exact CAD export deliberately disabled by --engine none.")
         elif preferred == "cadquery" and cadquery_available:
             selected = "cadquery"
+        elif preferred == "cadquery":
+            selected = "none"
+            notes.append("Requested CadQuery but it is unavailable.")
         elif preferred == "freecad" and freecad_available:
-            selected = "freecad"
-            notes.append("FreeCAD detected, but 003I does not yet implement full FreeCAD export. CadQuery is the primary V0 exact exporter.")
+            selected = "freecad-detected-not-implemented"
+            notes.append("FreeCAD detected, but 003K still uses CadQuery as the implemented exact exporter.")
+        elif preferred == "freecad":
+            selected = "none"
+            notes.append("Requested FreeCAD but it is unavailable.")
         elif cadquery_available:
             selected = "cadquery"
         elif freecad_available:
@@ -74,13 +67,11 @@ class CicadaCadSidecar:
         else:
             selected = "none"
 
-        exact_step = selected == "cadquery"
-
         return CadEngineState(
             cadquery_available=cadquery_available,
             freecad_available=freecad_available,
             selected_engine=selected,
-            exact_step_available=exact_step,
+            exact_step_available=(selected == "cadquery"),
             notes=notes,
         )
 
@@ -89,11 +80,21 @@ class CicadaCadSidecar:
             raise FileNotFoundError(f"Missing part file: {part_path}")
         return json.loads(part_path.read_text(encoding="utf-8"))
 
+    def _num(self, obj: dict[str, Any], key: str, errors: list[str], prefix: str, positive: bool = False) -> float:
+        try:
+            value = float(obj[key])
+            if positive and value <= 0:
+                errors.append(f"{prefix}.{key} must be positive.")
+            return value
+        except Exception:
+            errors.append(f"{prefix}.{key} must be numeric.")
+            return 0.0
+
     def validate_part(self, part: dict[str, Any]) -> list[str]:
         errors: list[str] = []
 
-        if part.get("schema_version") != "cicada_part_v0_1":
-            errors.append("schema_version must be cicada_part_v0_1.")
+        if part.get("schema_version") not in SUPPORTED_SCHEMAS:
+            errors.append(f"schema_version must be one of {sorted(SUPPORTED_SCHEMAS)}.")
 
         if part.get("units") != "mm":
             errors.append("units must be mm.")
@@ -108,17 +109,9 @@ class CicadaCadSidecar:
             errors.append("V0 supports only body type box.")
             return errors
 
-        for key in ["width", "depth", "height"]:
-            try:
-                value = float(body[key])
-                if value <= 0:
-                    errors.append(f"body.{key} must be positive.")
-            except Exception:
-                errors.append(f"body.{key} must be numeric.")
-
-        width = float(body.get("width", 0) or 0)
-        depth = float(body.get("depth", 0) or 0)
-        height = float(body.get("height", 0) or 0)
+        width = self._num(body, "width", errors, "body", positive=True)
+        depth = self._num(body, "depth", errors, "body", positive=True)
+        height = self._num(body, "height", errors, "body", positive=True)
 
         if width > 220 or depth > 220 or height > 250:
             errors.append("V0 generic printer fit check failed: body exceeds 220 x 220 x 250 mm.")
@@ -129,43 +122,62 @@ class CicadaCadSidecar:
             return errors
 
         for idx, feature in enumerate(features):
+            prefix = f"features[{idx}]"
             ftype = feature.get("type")
-            if ftype != "hole":
-                errors.append(f"features[{idx}] unsupported type: {ftype}. V0 supports hole only.")
+            if ftype not in {"hole", "slot", "standoff"}:
+                errors.append(f"{prefix} unsupported type: {ftype}. V0.2 supports hole, slot, standoff.")
                 continue
 
             if feature.get("face") != "top":
-                errors.append(f"features[{idx}] face must be top in V0.")
+                errors.append(f"{prefix}.face must be top in V0.2.")
 
-            try:
-                x = float(feature["x"])
-                y = float(feature["y"])
-                diameter = float(feature["diameter"])
-            except Exception:
-                errors.append(f"features[{idx}] x/y/diameter must be numeric.")
-                continue
+            x = self._num(feature, "x", errors, prefix)
+            y = self._num(feature, "y", errors, prefix)
 
-            if diameter <= 0:
-                errors.append(f"features[{idx}] diameter must be positive.")
-                continue
+            if ftype == "hole":
+                diameter = self._num(feature, "diameter", errors, prefix, positive=True)
+                radius = diameter / 2.0
+                if not (radius <= x <= width - radius and radius <= y <= depth - radius):
+                    errors.append(f"{prefix} hole centre/radius is outside the box top face.")
+                depth_mode = feature.get("depth", "through")
+                if depth_mode != "through":
+                    try:
+                        if float(depth_mode) <= 0:
+                            errors.append(f"{prefix}.depth must be through or positive number.")
+                    except Exception:
+                        errors.append(f"{prefix}.depth must be through or numeric.")
 
-            radius = diameter / 2.0
-            if not (radius <= x <= width - radius and radius <= y <= depth - radius):
-                errors.append(f"features[{idx}] hole centre/radius is outside the box top face.")
+            if ftype == "slot":
+                length = self._num(feature, "length", errors, prefix, positive=True)
+                slot_width = self._num(feature, "width", errors, prefix, positive=True)
+                if length < slot_width:
+                    errors.append(f"{prefix}.length must be >= width for a slot.")
+                angle = float(feature.get("angle_deg", 0) or 0)
+                if abs(angle) > 1e-6:
+                    errors.append(f"{prefix}.angle_deg other than 0 is recorded but not manufacturable in V0.2 exact export.")
+                if not (length / 2.0 <= x <= width - length / 2.0 and slot_width / 2.0 <= y <= depth - slot_width / 2.0):
+                    errors.append(f"{prefix} slot extents are outside the box top face.")
 
-            depth_mode = feature.get("depth", "through")
-            if depth_mode != "through":
-                try:
-                    d = float(depth_mode)
-                    if d <= 0:
-                        errors.append(f"features[{idx}] depth must be through or positive number.")
-                except Exception:
-                    errors.append(f"features[{idx}] depth must be through or numeric.")
+            if ftype == "standoff":
+                diameter = self._num(feature, "diameter", errors, prefix, positive=True)
+                standoff_height = self._num(feature, "height", errors, prefix, positive=True)
+                radius = diameter / 2.0
+                if not (radius <= x <= width - radius and radius <= y <= depth - radius):
+                    errors.append(f"{prefix} standoff centre/radius is outside the box top face.")
+                pilot = feature.get("pilot_hole_diameter", 0)
+                if pilot not in (None, "", 0, 0.0):
+                    try:
+                        pilot_value = float(pilot)
+                        if pilot_value <= 0 or pilot_value >= diameter:
+                            errors.append(f"{prefix}.pilot_hole_diameter must be positive and smaller than standoff diameter.")
+                    except Exception:
+                        errors.append(f"{prefix}.pilot_hole_diameter must be numeric if supplied.")
+                if height + standoff_height > 250:
+                    errors.append(f"{prefix} total part height exceeds 250 mm generic V0 check.")
 
         safety = part.get("safety", {})
         if safety.get("direct_printer_send") is not False:
             errors.append("safety.direct_printer_send must be false.")
-
         if str(safety.get("machine_bridge", "")).upper() != "LOCKED":
             errors.append("safety.machine_bridge must be LOCKED.")
 
@@ -177,25 +189,48 @@ class CicadaCadSidecar:
         depth = float(body["depth"])
         height = float(body["height"])
 
-        holes = [f for f in part.get("features", []) if f.get("type") == "hole"]
-        hole_area = 0.0
-        for hole in holes:
-            diameter = float(hole["diameter"])
-            hole_area += math.pi * (diameter / 2.0) ** 2
+        removed_volume = 0.0
+        added_volume = 0.0
+        counts = {"hole": 0, "slot": 0, "standoff": 0}
+
+        for feature in part.get("features", []):
+            ftype = feature.get("type")
+            if ftype in counts:
+                counts[ftype] += 1
+
+            if ftype == "hole":
+                diameter = float(feature["diameter"])
+                removed_volume += math.pi * (diameter / 2.0) ** 2 * height
+
+            if ftype == "slot":
+                length = float(feature["length"])
+                slot_width = float(feature["width"])
+                straight_length = max(length - slot_width, 0.0)
+                slot_area = straight_length * slot_width + math.pi * (slot_width / 2.0) ** 2
+                removed_volume += slot_area * height
+
+            if ftype == "standoff":
+                diameter = float(feature["diameter"])
+                standoff_height = float(feature["height"])
+                added_volume += math.pi * (diameter / 2.0) ** 2 * standoff_height
+                pilot = feature.get("pilot_hole_diameter", 0)
+                if pilot not in (None, "", 0, 0.0):
+                    pilot_d = float(pilot)
+                    removed_volume += math.pi * (pilot_d / 2.0) ** 2 * (height + standoff_height)
 
         gross_volume = width * depth * height
-        through_hole_volume = hole_area * height
-        estimated_volume = max(gross_volume - through_hole_volume, 0.0)
+        estimated_volume = max(gross_volume - removed_volume + added_volume, 0.0)
 
         return {
             "width_mm": width,
             "depth_mm": depth,
             "height_mm": height,
             "gross_volume_mm3": gross_volume,
-            "estimated_hole_removed_volume_mm3": through_hole_volume,
+            "estimated_removed_volume_mm3": removed_volume,
+            "estimated_added_volume_mm3": added_volume,
             "estimated_net_volume_mm3": estimated_volume,
             "top_area_mm2": width * depth,
-            "hole_count": len(holes),
+            "feature_counts": counts,
             "fits_generic_220x220x250": width <= 220 and depth <= 220 and height <= 250,
         }
 
@@ -203,30 +238,42 @@ class CicadaCadSidecar:
         body = part["bodies"][0]
         width = float(body["width"])
         depth = float(body["depth"])
-
         scale = min(500 / max(width, 1), 280 / max(depth, 1))
-        ox, oy = 70, 60
+        ox, oy = 70, 70
         w, d = width * scale, depth * scale
 
-        holes_svg = []
+        feature_svg = []
         for feature in part.get("features", []):
-            if feature.get("type") == "hole":
-                cx = ox + float(feature["x"]) * scale
-                cy = oy + float(feature["y"]) * scale
+            ftype = feature.get("type")
+            x = ox + float(feature.get("x", 0)) * scale
+            y = oy + float(feature.get("y", 0)) * scale
+
+            if ftype == "hole":
                 r = float(feature["diameter"]) * scale / 2.0
-                holes_svg.append(f'<circle cx="{cx:.2f}" cy="{cy:.2f}" r="{r:.2f}" fill="none" stroke="#111" stroke-width="2"/>')
-                holes_svg.append(f'<circle cx="{cx:.2f}" cy="{cy:.2f}" r="2.2" fill="#111"/>')
+                feature_svg.append(f'<circle cx="{x:.2f}" cy="{y:.2f}" r="{r:.2f}" fill="none" stroke="#111" stroke-width="2"/>')
+                feature_svg.append(f'<circle cx="{x:.2f}" cy="{y:.2f}" r="2.2" fill="#111"/>')
+
+            if ftype == "slot":
+                length = float(feature["length"]) * scale
+                sw = float(feature["width"]) * scale
+                rx = sw / 2.0
+                feature_svg.append(f'<rect x="{x-length/2:.2f}" y="{y-sw/2:.2f}" width="{length:.2f}" height="{sw:.2f}" rx="{rx:.2f}" ry="{rx:.2f}" fill="none" stroke="#111" stroke-width="2"/>')
+
+            if ftype == "standoff":
+                r = float(feature["diameter"]) * scale / 2.0
+                feature_svg.append(f'<circle cx="{x:.2f}" cy="{y:.2f}" r="{r:.2f}" fill="none" stroke="#111" stroke-width="2"/>')
+                feature_svg.append(f'<circle cx="{x:.2f}" cy="{y:.2f}" r="{r*0.55:.2f}" fill="none" stroke="#666" stroke-width="1.5"/>')
 
         return f"""
-<svg viewBox="0 0 660 420" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="CICADA CAD top preview">
+<svg viewBox="0 0 660 430" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="CICADA CAD top preview">
   <style>
     .label {{ fill:#eaeaea; font:14px system-ui, sans-serif; }}
     .dim {{ fill:#aaa; font:12px system-ui, sans-serif; }}
   </style>
-  <rect x="0" y="0" width="660" height="420" fill="#050505"/>
+  <rect x="0" y="0" width="660" height="430" fill="#050505"/>
   <rect x="{ox:.2f}" y="{oy:.2f}" width="{w:.2f}" height="{d:.2f}" fill="#f2f2f2" stroke="#111" stroke-width="2"/>
-  {''.join(holes_svg)}
-  <text class="label" x="30" y="30">{html.escape(str(part.get("part_id", "part")))}</text>
+  {''.join(feature_svg)}
+  <text class="label" x="30" y="35">{html.escape(str(part.get("part_id", "part")))}</text>
   <text class="dim" x="{ox:.2f}" y="{oy + d + 26:.2f}">{width:.2f} mm x {depth:.2f} mm top view</text>
 </svg>
 """
@@ -242,23 +289,29 @@ class CicadaCadSidecar:
 
         result = cq.Workplane("XY").box(width, depth, height, centered=(False, False, False))
 
-        holes = [f for f in part.get("features", []) if f.get("type") == "hole"]
-        if holes:
-            points = []
-            for hole in holes:
-                points.append((float(hole["x"]) - width / 2.0, float(hole["y"]) - depth / 2.0))
-            # On the top face, make through holes.
-            # V0 assumes all hole features are through holes on top face.
-            first_diameter = float(holes[0]["diameter"])
-            same = all(abs(float(h["diameter"]) - first_diameter) < 1e-6 for h in holes)
-            if same:
-                result = result.faces(">Z").workplane(centerOption="CenterOfBoundBox").pushPoints(points).hole(first_diameter)
-            else:
-                # Different diameters are handled one by one, because precision beats pretending.
-                for hole in holes:
-                    x = float(hole["x"]) - width / 2.0
-                    y = float(hole["y"]) - depth / 2.0
-                    result = result.faces(">Z").workplane(centerOption="CenterOfBoundBox").center(x, y).hole(float(hole["diameter"])).center(-x, -y)
+        for feature in part.get("features", []):
+            ftype = feature.get("type")
+            x = float(feature.get("x", 0)) - width / 2.0
+            y = float(feature.get("y", 0)) - depth / 2.0
+
+            if ftype == "hole":
+                result = result.faces(">Z").workplane(centerOption="CenterOfBoundBox").center(x, y).hole(float(feature["diameter"])).center(-x, -y)
+
+            if ftype == "slot":
+                # Axis-aligned V0.2 slots only. Angled slots are validated as non-exportable for now.
+                length = float(feature["length"])
+                slot_width = float(feature["width"])
+                result = result.faces(">Z").workplane(centerOption="CenterOfBoundBox").center(x, y).slot2D(length, slot_width).cutThruAll().center(-x, -y)
+
+            if ftype == "standoff":
+                diameter = float(feature["diameter"])
+                standoff_height = float(feature["height"])
+                post = cq.Workplane("XY").workplane(offset=height).center(float(feature["x"]), float(feature["y"])).circle(diameter / 2.0).extrude(standoff_height)
+                result = result.union(post)
+
+                pilot = feature.get("pilot_hole_diameter", 0)
+                if pilot not in (None, "", 0, 0.0):
+                    result = result.faces(">Z").workplane(centerOption="CenterOfBoundBox").center(x, y).hole(float(pilot)).center(-x, -y)
 
         step_path.parent.mkdir(parents=True, exist_ok=True)
         exporters.export(result, str(step_path))
@@ -285,7 +338,7 @@ class CicadaCadSidecar:
 <title>CICADA CAD Sidecar Report</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
-:root {{ color-scheme: dark; --bg:#050505; --panel:#111; --line:#333; --text:#f5f5f5; --muted:#aaa; --good:#9fffa8; --warn:#ffd479; --bad:#ff8f8f; --cyan:#aef5ff; }}
+:root {{ color-scheme: dark; --bg:#050505; --panel:#111; --line:#333; --text:#f5f5f5; --muted:#aaa; --good:#9fffa8; --warn:#ffd479; --bad:#ff8f8f; }}
 body {{ margin:0; background:var(--bg); color:var(--text); font-family:system-ui, Segoe UI, Arial, sans-serif; }}
 main {{ max-width:1180px; margin:0 auto; padding:24px; }}
 .grid {{ display:grid; grid-template-columns:1fr 1fr; gap:16px; }}
@@ -304,14 +357,9 @@ pre {{ white-space:pre-wrap; word-break:break-word; background:#050505; border:1
 <body>
 <main>
 <h1>CICADA CAD SIDECAR REPORT</h1>
-<p class="muted">Exact-geometry boundary report. Direct machine control remains locked. The goblin may calculate; it may not touch motors.</p>
-
+<p class="muted">V0.2 feature-intent report. Direct machine control remains locked, because metal and motors are not vibes.</p>
 <div class="grid">
-<section class="panel">
-<h2>Preview</h2>
-{preview}
-</section>
-
+<section class="panel"><h2>Preview</h2>{preview}</section>
 <section class="panel">
 <h2>Gate: <span class="{status_cls}">{status}</span></h2>
 <table>
@@ -319,35 +367,23 @@ pre {{ white-space:pre-wrap; word-break:break-word; background:#050505; border:1
 <tr><td>Engine selected</td><td>{html.escape(str(report.get("engine", {}).get("selected_engine")))}</td></tr>
 <tr><td>Exact STEP exported</td><td>{exact}</td></tr>
 <tr><td>STEP path</td><td>{html.escape(str(report.get("outputs", {}).get("step", "not exported")))}</td></tr>
-<tr><td>Fallback STL path</td><td>{html.escape(str(report.get("outputs", {}).get("fallback_stl", report.get("outputs", {}).get("stl", "not exported"))))}</td></tr>
+<tr><td>Export block reason</td><td>{html.escape(str(report.get("export_block_reason", "")))}</td></tr>
 <tr><td>Machine bridge</td><td>LOCKED</td></tr>
 <tr><td>Direct printer send</td><td>false</td></tr>
 </table>
 </section>
 </div>
-
-<section class="panel">
-<h2>Validation</h2>
-<pre>{html.escape(json.dumps(report.get("validation", {}), indent=2))}</pre>
-</section>
-
-<section class="panel">
-<h2>Derived stats</h2>
-<pre>{html.escape(json.dumps(report.get("derived", {}), indent=2))}</pre>
-</section>
-
-<section class="panel">
-<h2>Raw report JSON</h2>
-<pre>{raw}</pre>
-</section>
+<section class="panel"><h2>Validation</h2><pre>{html.escape(json.dumps(report.get("validation", {}), indent=2))}</pre></section>
+<section class="panel"><h2>Derived stats</h2><pre>{html.escape(json.dumps(report.get("derived", {}), indent=2))}</pre></section>
+<section class="panel"><h2>Raw report JSON</h2><pre>{raw}</pre></section>
 </main>
 </body>
 </html>
 """
 
     def fallback_box_stl(self, part: dict[str, Any], out_path: Path) -> str:
-        # Fallback mesh output is intentionally limited to a plain box with no holes.
-        # If holes exist, do not fake them: write no fallback STL.
+        # Fallback mesh output is intentionally limited to a plain box with no features.
+        # If holes/slots/standoffs exist, do not fake them.
         if part.get("features"):
             return ""
 
@@ -356,7 +392,7 @@ pre {{ white-space:pre-wrap; word-break:break-word; background:#050505; border:1
         depth = float(body["depth"])
         height = float(body["height"])
 
-        def tri(a: tuple[float, float, float], b: tuple[float, float, float], c: tuple[float, float, float]) -> str:
+        def tri(a, b, c) -> str:
             return (
                 "  facet normal 0 0 0\n"
                 "    outer loop\n"
@@ -367,15 +403,8 @@ pre {{ white-space:pre-wrap; word-break:break-word; background:#050505; border:1
                 "  endfacet\n"
             )
 
-        v000 = (0.0, 0.0, 0.0)
-        v100 = (width, 0.0, 0.0)
-        v110 = (width, depth, 0.0)
-        v010 = (0.0, depth, 0.0)
-        v001 = (0.0, 0.0, height)
-        v101 = (width, 0.0, height)
-        v111 = (width, depth, height)
-        v011 = (0.0, depth, height)
-
+        v000 = (0.0, 0.0, 0.0); v100 = (width, 0.0, 0.0); v110 = (width, depth, 0.0); v010 = (0.0, depth, 0.0)
+        v001 = (0.0, 0.0, height); v101 = (width, 0.0, height); v111 = (width, depth, height); v011 = (0.0, depth, height)
         triangles = [
             (v000, v110, v100), (v000, v010, v110),
             (v001, v101, v111), (v001, v111, v011),
@@ -384,7 +413,6 @@ pre {{ white-space:pre-wrap; word-break:break-word; background:#050505; border:1
             (v000, v001, v011), (v000, v011, v010),
             (v100, v110, v111), (v100, v111, v101),
         ]
-
         text = "solid CICADA_CAD_Fallback_Box\n" + "".join(tri(*t) for t in triangles) + "endsolid CICADA_CAD_Fallback_Box\n"
         out_path.parent.mkdir(parents=True, exist_ok=True)
         out_path.write_text(text, encoding="utf-8")
@@ -406,7 +434,6 @@ pre {{ white-space:pre-wrap; word-break:break-word; background:#050505; border:1
         outputs: dict[str, str] = {}
         exact_step_exported = False
         export_block_reason = ""
-
         validation_pass = len(errors) == 0
 
         if validation_pass and engine_state.selected_engine == "cadquery":
@@ -421,10 +448,7 @@ pre {{ white-space:pre-wrap; word-break:break-word; background:#050505; border:1
             export_block_reason = "Exact STEP export blocked: no implemented exact CAD engine available in this Python environment."
             fallback_stl_path = self.export_dir / f"{safe}_{stamp}.fallback_box.stl"
             fallback = self.fallback_box_stl(part, fallback_stl_path)
-            if fallback:
-                outputs["fallback_stl"] = fallback
-            else:
-                outputs["fallback_stl"] = "not generated because features exist; refusing to fake holes/cuts without CAD engine"
+            outputs["fallback_stl"] = fallback if fallback else "not generated because features exist; refusing to fake holes/slots/standoffs without CAD engine"
 
         intent_path = self.intent_dir / f"{safe}_{stamp}.intent.json"
         intent_path.write_text(json.dumps(part, indent=2), encoding="utf-8")
@@ -432,14 +456,11 @@ pre {{ white-space:pre-wrap; word-break:break-word; background:#050505; border:1
 
         report = {
             "project": "CICADA_FORGE_UE",
-            "phase": "003I",
+            "phase": "003K",
             "part_id": part_id,
             "source": str(part_path),
             "validation_pass": validation_pass,
-            "validation": {
-                "errors": errors,
-                "no_fake_step_rule": True,
-            },
+            "validation": {"errors": errors, "no_fake_step_rule": True},
             "engine": {
                 "cadquery_available": engine_state.cadquery_available,
                 "freecad_available": engine_state.freecad_available,
@@ -462,7 +483,6 @@ pre {{ white-space:pre-wrap; word-break:break-word; background:#050505; border:1
         report_html = self.report_dir / f"{safe}_{stamp}.cad_report.html"
         report["outputs"]["report_json"] = str(report_json)
         report["outputs"]["report_html"] = str(report_html)
-
         report_json.write_text(json.dumps({k: v for k, v in report.items() if k != "svg_preview"}, indent=2), encoding="utf-8")
         report_html.write_text(self.make_report_html(report), encoding="utf-8")
 
@@ -480,7 +500,7 @@ pre {{ white-space:pre-wrap; word-break:break-word; background:#050505; border:1
 
         payload = {
             "project": "CICADA_FORGE_UE",
-            "phase": "003I",
+            "phase": "003K",
             "examples_checked": len(results),
             "all_pass": all(r["pass"] for r in results),
             "results": results,
@@ -494,12 +514,14 @@ pre {{ white-space:pre-wrap; word-break:break-word; background:#050505; border:1
         engine = self.engine_state()
         payload = {
             "project": "CICADA_FORGE_UE",
-            "phase": "003I",
+            "phase": "003K",
             "repo": str(self.repo),
             "python": sys.version,
             "platform": platform.platform(),
             "schema_exists": self.schema_path.exists(),
             "example_parts": [str(p) for p in sorted(self.parts_dir.glob("*.part.json"))],
+            "supported_schemas": sorted(SUPPORTED_SCHEMAS),
+            "supported_features": ["box", "hole", "slot", "standoff"],
             "cadquery_available": engine.cadquery_available,
             "freecad_available": engine.freecad_available,
             "selected_engine": engine.selected_engine,
@@ -513,7 +535,7 @@ pre {{ white-space:pre-wrap; word-break:break-word; background:#050505; border:1
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="CICADA CAD sidecar V0. Exact-geometry contract, validation, reports, optional CadQuery export.")
+    parser = argparse.ArgumentParser(description="CICADA CAD sidecar V0.2. Exact-geometry contract, validation, reports, optional CadQuery export.")
     parser.add_argument("--repo", type=Path, default=DEFAULT_REPO)
     sub = parser.add_subparsers(dest="command", required=True)
 
@@ -539,13 +561,7 @@ def main() -> int:
     if args.command == "validate":
         part = sidecar.load_part(args.part)
         errors = sidecar.validate_part(part)
-        payload = {
-            "part": str(args.part),
-            "pass": len(errors) == 0,
-            "errors": errors,
-            "direct_printer_send": False,
-            "machine_bridge": "LOCKED",
-        }
+        payload = {"part": str(args.part), "pass": len(errors) == 0, "errors": errors, "direct_printer_send": False, "machine_bridge": "LOCKED"}
         print(json.dumps(payload, indent=2))
         return 0 if len(errors) == 0 else 2
 

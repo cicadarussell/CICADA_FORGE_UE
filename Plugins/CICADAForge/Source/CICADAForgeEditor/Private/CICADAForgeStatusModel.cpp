@@ -13,7 +13,7 @@ FCICADAForgeStatusModel FCICADAForgeStatusModel::MakeFromProjectState(const FCIC
 
     Model.BottomLog = FText::FromString(
         FString::Printf(
-            TEXT("LOG: Phase 003I CAD sidecar contract and exact-geometry boundary are live. Last run: %s"),
+            TEXT("LOG: Phase 003J CAD builder and PowerShell switch fix are live. Last run: %s"),
             *ProjectState.LastRunState
         )
     );
@@ -24,18 +24,18 @@ FCICADAForgeStatusModel FCICADAForgeStatusModel::MakeFromProjectState(const FCIC
     Model.ProjectActions.Add(NSLOCTEXT("CICADAForgeStatusModel", "ActionExportProof", "Export proof receipt"));
 
     Model.WorkspaceCards.Add(FCICADAForgePanelCard{
-        NSLOCTEXT("CICADAForgeStatusModel", "CadContractCardTitle", "CAD Sidecar Contract"),
-        NSLOCTEXT("CICADAForgeStatusModel", "CadContractCardBody", "Phase 003I defines the exact-geometry boundary: JSON part schema, mechanical examples, validation, reports, and optional CadQuery/FreeCAD STEP export if an engine exists.")
+        NSLOCTEXT("CICADAForgeStatusModel", "CadBuilderCardTitle", "CAD Builder"),
+        NSLOCTEXT("CICADAForgeStatusModel", "CadBuilderCardBody", "Phase 003J adds mechanical part builders for mounting plates, robot plates, and enclosure blanks. These create CAD intent JSON and feed the sidecar/report/dashboard.")
+    });
+
+    Model.WorkspaceCards.Add(FCICADAForgePanelCard{
+        NSLOCTEXT("CICADAForgeStatusModel", "SwitchFixCardTitle", "PowerShell Switch Fix"),
+        NSLOCTEXT("CICADAForgeStatusModel", "SwitchFixCardBody", "The wrapper now forwards -OpenReport and -OpenDashboard as real switch parameters, not tragic little strings wearing switch costumes.")
     });
 
     Model.WorkspaceCards.Add(FCICADAForgePanelCard{
         NSLOCTEXT("CICADAForgeStatusModel", "NoFakeStepCardTitle", "No Fake STEP Rule"),
-        NSLOCTEXT("CICADAForgeStatusModel", "NoFakeStepCardBody", "If no exact CAD engine is detected, the sidecar writes a blocked export report instead of pretending triangles are STEP. Astonishingly, honesty is cheaper than haunted manufacturing.")
-    });
-
-    Model.WorkspaceCards.Add(FCICADAForgePanelCard{
-        NSLOCTEXT("CICADAForgeStatusModel", "SafetyCardTitle", "Automation Boundary"),
-        NSLOCTEXT("CICADAForgeStatusModel", "SafetyCardBody", "Allowed: validate part intent, generate reports, optional local STEP/STL export. Blocked: serial ports, G-code streaming, printer/CNC/pick-and-place commands.")
+        NSLOCTEXT("CICADAForgeStatusModel", "NoFakeStepCardBody", "Exact STEP export still requires an exact CAD engine. If CadQuery is missing, the correct result is an honest blocked report.")
     });
 
     Model.StatusCards.Add(FCICADAForgePanelCard{
@@ -62,7 +62,7 @@ FCICADAForgeStatusModel FCICADAForgeStatusModel::MakeFromProjectState(const FCIC
         NSLOCTEXT("CICADAForgeStatusModel", "BoundaryCardTitle", "Safety Boundary"),
         FText::FromString(
             ProjectState.bMachineCommandsLocked
-                ? TEXT("Machine commands are locked. CAD sidecar is local/export-only.")
+                ? TEXT("Machine commands are locked. CAD builder is local/export-only.")
                 : TEXT("WARNING: machine command lock is disabled.")
         )
     });

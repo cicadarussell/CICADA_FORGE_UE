@@ -1,0 +1,73 @@
+{
+  "schema_version": "cicada_part_v0_2",
+  "part_id": "slotted_motor_mount_v02",
+  "units": "mm",
+  "material": "PETG",
+  "bodies": [
+    {
+      "id": "body_001",
+      "type": "box",
+      "width": 100,
+      "depth": 60,
+      "height": 8,
+      "origin": [0, 0, 0]
+    }
+  ],
+  "features": [
+    {
+      "id": "adjust_slot_001",
+      "type": "slot",
+      "target_body": "body_001",
+      "face": "top",
+      "x": 32,
+      "y": 30,
+      "length": 28,
+      "width": 5.2,
+      "angle_deg": 0,
+      "depth": "through"
+    },
+    {
+      "id": "adjust_slot_002",
+      "type": "slot",
+      "target_body": "body_001",
+      "face": "top",
+      "x": 68,
+      "y": 30,
+      "length": 28,
+      "width": 5.2,
+      "angle_deg": 0,
+      "depth": "through"
+    },
+    {
+      "id": "locator_hole_001",
+      "type": "hole",
+      "target_body": "body_001",
+      "face": "top",
+      "x": 50,
+      "y": 15,
+      "diameter": 4.2,
+      "depth": "through"
+    },
+    {
+      "id": "locator_hole_002",
+      "type": "hole",
+      "target_body": "body_001",
+      "face": "top",
+      "x": 50,
+      "y": 45,
+      "diameter": 4.2,
+      "depth": "through"
+    }
+  ],
+  "manufacturing": {
+    "process": "3d_print",
+    "layer_height_mm": 0.24,
+    "walls": 4,
+    "infill_percent": 45,
+    "supports": "off"
+  },
+  "safety": {
+    "direct_printer_send": false,
+    "machine_bridge": "LOCKED"
+  }
+}

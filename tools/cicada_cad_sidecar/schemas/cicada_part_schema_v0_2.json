@@ -1,0 +1,72 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CICADA Part Schema V0.2",
+  "type": "object",
+  "required": ["schema_version", "part_id", "units", "bodies", "safety"],
+  "properties": {
+    "schema_version": {
+      "enum": ["cicada_part_v0_1", "cicada_part_v0_2"]
+    },
+    "part_id": { "type": "string" },
+    "units": { "const": "mm" },
+    "material": { "type": "string" },
+    "bodies": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "type", "width", "depth", "height"],
+        "properties": {
+          "id": { "type": "string" },
+          "type": { "const": "box" },
+          "width": { "type": "number", "exclusiveMinimum": 0 },
+          "depth": { "type": "number", "exclusiveMinimum": 0 },
+          "height": { "type": "number", "exclusiveMinimum": 0 },
+          "origin": {
+            "type": "array",
+            "items": { "type": "number" },
+            "minItems": 3,
+            "maxItems": 3
+          }
+        }
+      }
+    },
+    "features": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "type", "target_body", "face", "x", "y"],
+        "properties": {
+          "id": { "type": "string" },
+          "type": { "enum": ["hole", "slot", "standoff"] },
+          "target_body": { "type": "string" },
+          "face": { "const": "top" },
+          "x": { "type": "number" },
+          "y": { "type": "number" },
+          "diameter": { "type": "number", "exclusiveMinimum": 0 },
+          "depth": {
+            "oneOf": [
+              { "const": "through" },
+              { "type": "number", "exclusiveMinimum": 0 }
+            ]
+          },
+          "length": { "type": "number", "exclusiveMinimum": 0 },
+          "width": { "type": "number", "exclusiveMinimum": 0 },
+          "angle_deg": { "type": "number" },
+          "height": { "type": "number", "exclusiveMinimum": 0 },
+          "pilot_hole_diameter": { "type": "number", "minimum": 0 }
+        }
+      }
+    },
+    "manufacturing": { "type": "object" },
+    "safety": {
+      "type": "object",
+      "required": ["direct_printer_send", "machine_bridge"],
+      "properties": {
+        "direct_printer_send": { "const": false },
+        "machine_bridge": { "const": "LOCKED" }
+      }
+    }
+  }
+}

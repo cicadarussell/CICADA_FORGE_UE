@@ -1,0 +1,75 @@
+{
+  "schema_version": "cicada_part_v0_2",
+  "part_id": "robot_sensor_plate_v02",
+  "units": "mm",
+  "material": "PETG",
+  "bodies": [
+    {
+      "id": "body_001",
+      "type": "box",
+      "width": 120,
+      "depth": 70,
+      "height": 6,
+      "origin": [0, 0, 0]
+    }
+  ],
+  "features": [
+    {
+      "id": "mount_slot_001",
+      "type": "slot",
+      "target_body": "body_001",
+      "face": "top",
+      "x": 36,
+      "y": 17.5,
+      "length": 24,
+      "width": 5,
+      "angle_deg": 0,
+      "depth": "through"
+    },
+    {
+      "id": "mount_slot_002",
+      "type": "slot",
+      "target_body": "body_001",
+      "face": "top",
+      "x": 84,
+      "y": 17.5,
+      "length": 24,
+      "width": 5,
+      "angle_deg": 0,
+      "depth": "through"
+    },
+    {
+      "id": "sensor_standoff_001",
+      "type": "standoff",
+      "target_body": "body_001",
+      "face": "top",
+      "x": 48,
+      "y": 35,
+      "diameter": 8,
+      "height": 6,
+      "pilot_hole_diameter": 2.4
+    },
+    {
+      "id": "sensor_standoff_002",
+      "type": "standoff",
+      "target_body": "body_001",
+      "face": "top",
+      "x": 72,
+      "y": 35,
+      "diameter": 8,
+      "height": 6,
+      "pilot_hole_diameter": 2.4
+    }
+  ],
+  "manufacturing": {
+    "process": "3d_print",
+    "layer_height_mm": 0.24,
+    "walls": 4,
+    "infill_percent": 35,
+    "supports": "off"
+  },
+  "safety": {
+    "direct_printer_send": false,
+    "machine_bridge": "LOCKED"
+  }
+}

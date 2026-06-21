@@ -48,6 +48,13 @@ class CicadaDashboard:
             "CADIntent": ("CADIntent", "*.json"),
             "CADExports": ("CADExports", "*.*"),
             "CADReports": ("CADReports", "*.*"),
+            "EnvReports": ("EnvReports", "*.*"),
+            "SlicerReports": ("SlicerReports", "*.*"),
+            "HealthReports": ("HealthReports", "*.*"),
+            "CommandCenter": ("CommandCenter", "*.*"),
+            "Launchers": ("Launchers", "*.ps1"),
+            "Ledger": ("Ledger", "*.*"),
+            "ReleaseGates": ("ReleaseGates", "*.*"),
         }
 
     def artifact_list(self, kind: str, folder: str, pattern: str, limit: int = 12) -> list[Artifact]:
@@ -156,6 +163,14 @@ class CicadaDashboard:
             {"capability": "Manual print manifest", "status": "built", "notes": "Direct send false"},
             {"capability": "CAD/STEP sidecar contract", "status": "built", "notes": "003I exact-geometry boundary"},
             {"capability": "Exact STEP export", "status": "engine-dependent", "notes": "CadQuery required; no fake STEP if missing"},
+            {"capability": "CadQuery env readiness", "status": "built", "notes": "003L reports/venv plan"},
+            {"capability": "Slicer readiness", "status": "built", "notes": "003L report-only; no G-code"},
+            {"capability": "CAD engine launcher", "status": "built", "notes": "003M prefers .cicada_envs/cadquery"},
+            {"capability": "Slicer dry-run planner", "status": "built", "notes": "003M plan-only; no G-code"},
+            {"capability": "Passive health report", "status": "built", "notes": "003N not-run-aware diagnostics"},
+            {"capability": "Command center", "status": "built", "notes": "003N launcher scripts and command page"},
+            {"capability": "Run ledger", "status": "built", "notes": "003O latest-good/run history"},
+            {"capability": "Release candidate gate", "status": "built", "notes": "003O RC_READY/RC_PARTIAL/BLOCKED"},
             {"capability": "Slicer CLI", "status": "not built", "notes": "Later, dry-run only first"},
             {"capability": "Direct printer bridge", "status": "locked", "notes": "Correctly locked"},
         ]
@@ -163,8 +178,40 @@ class CicadaDashboard:
     def recommended_next_command(self) -> str:
         return (
             r'powershell -ExecutionPolicy Bypass -File "C:\CICADA\CICADA_APPS\CICADA_FORGE_UE\scripts\cicada_forge.ps1" '
-            r'-Command full-check -OpenReport'
+            r'-Command cad-full-check -OpenReport -OpenDashboard'
         )
+
+    def command_cards(self) -> list[dict[str, str]]:
+        return [
+            {
+                "title": "003N full check",
+                "command": r'powershell -ExecutionPolicy Bypass -File "C:\\CICADA\\CICADA_APPS\\CICADA_FORGE_UE\\scripts\\cicada_forge.ps1" -Command phase003N-full-check -OpenReport'
+            },
+            {
+                "title": "Environment doctor",
+                "command": r'powershell -ExecutionPolicy Bypass -File "C:\\CICADA\\CICADA_APPS\\CICADA_FORGE_UE\\scripts\\cicada_forge.ps1" -Command env-doctor -OpenReport'
+            },
+            {
+                "title": "Slicer readiness",
+                "command": r'powershell -ExecutionPolicy Bypass -File "C:\\CICADA\\CICADA_APPS\\CICADA_FORGE_UE\\scripts\\cicada_forge.ps1" -Command slicer-readiness -OpenReport'
+            },
+            {
+                "title": "CAD full check",
+                "command": r'powershell -ExecutionPolicy Bypass -File "C:\CICADA\CICADA_APPS\CICADA_FORGE_UE\scripts\cicada_forge.ps1" -Command cad-full-check -OpenReport -OpenDashboard'
+            },
+            {
+                "title": "Build sensor plate",
+                "command": r'powershell -ExecutionPolicy Bypass -File "C:\CICADA\CICADA_APPS\CICADA_FORGE_UE\scripts\cicada_forge.ps1" -Command cad-build-sensor-plate -Name "robot_sensor_plate" -OpenReport'
+            },
+            {
+                "title": "Build slotted motor mount",
+                "command": r'powershell -ExecutionPolicy Bypass -File "C:\CICADA\CICADA_APPS\CICADA_FORGE_UE\scripts\cicada_forge.ps1" -Command cad-build-motor-mount -Name "slotted_motor_mount" -OpenReport'
+            },
+            {
+                "title": "CAD sample pack",
+                "command": r'powershell -ExecutionPolicy Bypass -File "C:\CICADA\CICADA_APPS\CICADA_FORGE_UE\scripts\cicada_forge.ps1" -Command cad-sample-pack -OpenReport -OpenDashboard'
+            }
+        ]
 
     def build_snapshot(self) -> dict[str, Any]:
         latest_report = self.latest_file("Reports", "*.json")
@@ -183,6 +230,7 @@ class CicadaDashboard:
             "git": self.git_status(),
             "capability_matrix": self.capability_matrix(),
             "recommended_next_command": self.recommended_next_command(),
+            "command_cards": self.command_cards(),
             "latest_json": {
                 "latest_report": self.read_json_safe(latest_report),
                 "latest_run_report": self.read_json_safe(latest_run_report),
@@ -332,6 +380,14 @@ code {{ color:var(--cyan); }}
 <p class="muted">Do this instead of opening Unreal for every little check. Unreal can have a nap. It has earned nothing, but still.</p>
 </section>
 </div>
+
+<section class="panel" style="margin-top:16px;">
+<h2>Command Cards</h2>
+<p class="muted">Copy/paste commands. Browser does not run them directly, because that would be local automation with clown shoes.</p>
+<div class="cards">
+{''.join('<div class="card"><div class="muted">' + self.esc(card["title"]) + '</div><pre>' + self.esc(card["command"]) + '</pre></div>' for card in snapshot.get("command_cards", []))}
+</div>
+</section>
 
 <section class="panel" style="margin-top:16px;">
 <h2>Capability Matrix</h2>
