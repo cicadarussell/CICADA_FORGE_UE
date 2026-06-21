@@ -8,7 +8,7 @@ CICADA_FORGE_UE / CICADA SINGULARITY
 
 The user applied many phases manually. Key outcomes:
 
-- Phase 002L audit passed after the missing ZIP issue was resolved.
+- Phase 002L audit passed after a missing ZIP issue was resolved.
 - Phase 003D project on-track check passed.
 - Example box jobs validated.
 - Box jobs generated STLs, manifests, and receipts.
@@ -18,26 +18,25 @@ The user applied many phases manually. Key outcomes:
 
 ## Current phase package
 
-Phase 003G: Headless forge control tower.
+Phase 003H: Local artifact dashboard and control room.
 
 ## What this phase adds
 
-- No-Unreal master CLI:
-  `tools/cicada_headless/cicada_forge_headless.py`
-- PowerShell wrapper:
-  `scripts/cicada_forge.ps1`
-- Full-check, doctor, demo, custom-box, inventory, manifest-check, run-report.
-- Run reports under:
-  `Saved/CICADAForge/RunReports`
+- Local dashboard:
+  `tools/cicada_dashboard/cicada_artifact_dashboard.py`
+- Dashboard output:
+  `Saved/CICADAForge/Dashboard/index.html`
+  `Saved/CICADAForge/Dashboard/cicada_dashboard_snapshot.json`
+- Headless `dashboard` command.
+- PowerShell dashboard opener.
+- Dashboard quick check.
 
 ## Current useful path
 
 - Run headless full-check.
-- Generate editable/custom box STL.
-- Analyze STL.
-- Generate report.
-- Confirm manifest safety.
-- Open STL/report manually.
+- Generate dashboard.
+- Inspect latest artifacts in one page.
+- Only open Unreal for Unreal-specific UI changes.
 
 ## Still blocked
 
@@ -49,11 +48,6 @@ Phase 003G: Headless forge control tower.
 
 ## Next best phase
 
-003H: local dashboard/index page over headless artifacts.
-
-Suggested files:
-- `tools/cicada_dashboard/cicada_artifact_dashboard.py`
-- `scripts/open_cicada_dashboard.ps1`
-- dashboard HTML in `Saved/CICADAForge/Dashboard`
+003I: CAD sidecar contract and exact geometry boundary.
 
 Do not add direct printer sending.

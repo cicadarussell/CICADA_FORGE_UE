@@ -33,6 +33,7 @@ class HeadlessForge:
         self.stl_analyzer = repo / "tools" / "cicada_stl_sidecar" / "cicada_stl_analyzer.py"
         self.job_editor = repo / "tools" / "cicada_job_editor" / "local_box_job_editor.html"
         self.report_dir = self.saved / "RunReports"
+        self.dashboard_tool = repo / "tools" / "cicada_dashboard" / "cicada_artifact_dashboard.py"
 
     def rel(self, path: Path) -> str:
         try:
@@ -284,6 +285,12 @@ pre {{ white-space:pre-wrap; word-break:break-word; background:#050505; border:1
 </html>
 """
 
+    def dashboard(self, open_dashboard: bool = False) -> CommandResult:
+        args = []
+        if open_dashboard:
+            args.append("--open")
+        return self.py("dashboard", self.dashboard_tool, args)
+
     def full_check(self, open_report: bool = False) -> dict[str, Any]:
         doctor = self.doctor()
         pipeline = self.custom_box(
@@ -315,6 +322,8 @@ pre {{ white-space:pre-wrap; word-break:break-word; background:#050505; border:1
         }
 
         self.write_run_report("phase003G_full_check", data, open_report=open_report)
+        if self.dashboard_tool.exists():
+            self.dashboard(open_dashboard=False)
         return data
 
 
@@ -326,6 +335,8 @@ def main() -> int:
     sub.add_parser("doctor")
     sub.add_parser("inventory")
     sub.add_parser("manifest-check")
+    dashboard_cmd = sub.add_parser("dashboard")
+    dashboard_cmd.add_argument("--open", action="store_true")
 
     demo = sub.add_parser("demo")
     demo.add_argument("--open-report", action="store_true")
@@ -368,6 +379,10 @@ def main() -> int:
 
     if args.command == "manifest-check":
         forge.manifest_check()
+        return 0
+
+    if args.command == "dashboard":
+        forge.dashboard(open_dashboard=args.open)
         return 0
 
     if args.command == "demo":

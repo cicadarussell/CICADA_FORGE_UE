@@ -1,5 +1,5 @@
 param(
-    [ValidateSet("doctor", "inventory", "demo", "custom-box", "analyze", "manifest-check", "run-report", "full-check", "open-editor")]
+    [ValidateSet("doctor", "inventory", "demo", "custom-box", "analyze", "manifest-check", "dashboard", "run-report", "full-check", "open-editor")]
     [string]$Command = "full-check",
 
     [string]$Name = "custom_box",
@@ -13,7 +13,8 @@ param(
     [string]$Supports = "off",
 
     [switch]$OpenReport,
-    [switch]$OpenStl
+    [switch]$OpenStl,
+    [switch]$OpenDashboard
 )
 
 $Repo = "C:\CICADA\CICADA_APPS\CICADA_FORGE_UE"
@@ -46,6 +47,7 @@ if ($Command -eq "custom-box") {
     )
 }
 
+if ($Command -eq "dashboard" -and $OpenDashboard) { $args += "--open" }
 if ($OpenReport) { $args += "--open-report" }
 if ($OpenStl) { $args += "--open-stl" }
 

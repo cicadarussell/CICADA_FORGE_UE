@@ -10,21 +10,21 @@ Mainline cumulative patch.
 
 ## Current phase
 
-Phase Cluster 003G: Headless forge control tower.
+Phase Cluster 003H: Local artifact dashboard and control room.
 
 ## Completion
 
-Approximate overall project completion: 86 percent.
-Approximate V0 alpha completion: 83 percent.
+Approximate overall project completion: 90 percent.
+Approximate V0 alpha completion: 87 percent.
 Phases completed: 4 / 12.
 
 ## Track verdict
 
-The project is on track and now has a no-Unreal verification path.
+The project is on track and now has a local control-room view.
 
 Current correct path:
 
-**headless full-check -> editable box job -> STL -> quality report -> manifest -> slicer/manual print**
+**headless full-check -> local dashboard -> inspect artifacts -> slicer/manual print**
 
 Do not jump to direct printer control yet.
 
@@ -32,7 +32,7 @@ Do not jump to direct printer control yet.
 
 - Unreal cockpit/debug shell from Phase 002.
 - Scrollable backend/debug cockpit from Phase 002L.
-- Editable box job pipeline from Phase 003E.
+- Editable box job pipeline.
 - STL generation.
 - Print handoff manifest.
 - STL analyzer.
@@ -41,31 +41,26 @@ Do not jump to direct printer control yet.
 - Headless control tower.
 - Run reports.
 - Artifact inventory.
+- Local dashboard.
 
-## Added in Phase 003G
+## Added in Phase 003H
 
-- Adds master no-Unreal control tower:
-  `tools/cicada_headless/cicada_forge_headless.py`
-- Adds master wrapper:
-  `scripts/cicada_forge.ps1`
-- Adds headless helper scripts.
-- Adds full-check command.
-- Adds doctor command.
-- Adds custom-box command.
-- Adds inventory command.
-- Adds manifest safety check.
-- Adds run reports under:
-  `Saved/CICADAForge/RunReports`
-- Updates on-track check.
-- Updates artifact inventory to include RunReports.
+- Adds dashboard generator:
+  `tools/cicada_dashboard/cicada_artifact_dashboard.py`
+- Adds dashboard command to headless tool.
+- Adds dashboard command to master wrapper.
+- Adds open dashboard script.
+- Adds dashboard smoke test.
+- Adds dashboard quick check.
+- Adds local dashboard contract.
+- Adds tracker update.
+- Full-check now refreshes dashboard when dashboard tool exists.
 
 ## Not yet built
 
-- Local dashboard/index page.
-- Unreal button for headless full-check.
-- Unreal embedded report view.
-- STEP export.
-- CAD sidecar client.
+- Dashboard command launcher buttons.
+- Unreal button for headless dashboard.
+- CAD/STEP sidecar.
 - slicer CLI integration.
 - G-code preview.
 - direct printer bridge.
@@ -73,14 +68,14 @@ Do not jump to direct printer control yet.
 
 ## Next action
 
-1. Apply Phase 003G patch.
+1. Apply Phase 003H patch.
 2. Commit and push:
-   `Phase 003G: Add headless forge control tower`
+   `Phase 003H: Add local artifact dashboard`
 3. Run:
-   `scripts/cicada_forge.ps1 -Command full-check -OpenReport`
-4. Stop opening Unreal for every pipeline check.
-5. Keep direct printer send locked.
+   `scripts/cicada_forge.ps1 -Command dashboard -OpenDashboard`
+4. Run dashboard quick check.
+5. Use dashboard instead of opening Unreal for routine checks.
 
 ## Current risk
 
-The headless path is now stronger than the Unreal UI path. Next phase should either build a local dashboard over the headless outputs or connect Unreal buttons to headless scripts.
+The dashboard reads local artifacts and Git status. If `Saved` is deleted, dashboard still opens but shows empty artifact sections. That is expected, because deleting artifacts deletes artifacts. Stunning stuff.
