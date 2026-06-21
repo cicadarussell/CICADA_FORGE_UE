@@ -1,4 +1,7 @@
-param([switch]$OpenReport)
+param(
+    [switch]$OpenReport,
+    [switch]$OpenDashboard
+)
 
 $Repo = "C:\CICADA\CICADA_APPS\CICADA_FORGE_UE"
 
@@ -31,9 +34,9 @@ function Invoke-CicadaStep {
 }
 
 
-Write-Host "=== CICADA PHASE 003O/003P CLEAN FULL CHECK ==="
+Write-Host "=== CICADA PHASE 003P FULL INTEGRATION CHECK ==="
 
-Invoke-CicadaStep -ScriptPath "$Repo\scripts\diagnostics\cicada_health_report.ps1" -WithOpenReport:$OpenReport
+Invoke-CicadaStep -ScriptPath "$Repo\scripts\diagnostics\cicada_full_project_audit.ps1" -WithOpenReport:$OpenReport
 Invoke-CicadaStep -ScriptPath "$Repo\scripts\launcher\cicada_generate_command_center.ps1" -WithOpenReport:$OpenReport
 Invoke-CicadaStep -ScriptPath "$Repo\scripts\env\cicada_env_doctor.ps1" -WithOpenReport:$OpenReport
 Invoke-CicadaStep -ScriptPath "$Repo\scripts\env\cicada_cad_engine_launcher_doctor.ps1" -WithOpenReport:$OpenReport
@@ -43,14 +46,19 @@ Invoke-CicadaStep -ScriptPath "$Repo\scripts\slicer\cicada_slicer_dryrun_plan.ps
 Invoke-CicadaStep -ScriptPath "$Repo\scripts\diagnostics\cicada_health_report.ps1" -WithOpenReport:$OpenReport
 
 $DashArgs = @("-ExecutionPolicy", "Bypass", "-File", "$Repo\scripts\cicada_forge.ps1", "-Command", "dashboard")
-if ($OpenReport) { $DashArgs += "-OpenDashboard" }
+if ($OpenDashboard) { $DashArgs += "-OpenDashboard" }
 & powershell @DashArgs
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
-Invoke-CicadaStep -ScriptPath "$Repo\scripts\ledger\cicada_ledger_record.ps1" -ExtraArgs @("-Phase", "003P", "-Verdict", "PASS_OR_PARTIAL", "-Note", "Clean full check executed; review release gate for exact status.", "-Source", "phase003O-full-check")
+Invoke-CicadaStep -ScriptPath "$Repo\scripts\ledger\cicada_ledger_record.ps1" -ExtraArgs @("-Phase", "003P", "-Verdict", "PASS_OR_PARTIAL", "-Note", "Phase 003P full integration check executed; review release gate for exact status.", "-Source", "phase003P-full-check")
 Invoke-CicadaStep -ScriptPath "$Repo\scripts\ledger\cicada_release_gate.ps1" -WithOpenReport:$OpenReport
 
 $DashArgs2 = @("-ExecutionPolicy", "Bypass", "-File", "$Repo\scripts\cicada_forge.ps1", "-Command", "dashboard")
-if ($OpenReport) { $DashArgs2 += "-OpenDashboard" }
+if ($OpenDashboard) { $DashArgs2 += "-OpenDashboard" }
 & powershell @DashArgs2
-exit $LASTEXITCODE
+if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+Write-Host ""
+Write-Host "=== PHASE 003P FULL INTEGRATION CHECK COMPLETE ==="
+Write-Host "Expected release-gate verdict: RC_READY or RC_PARTIAL. BLOCKED means real failure."
+exit 0

@@ -7,6 +7,7 @@ import json
 import math
 import os
 import platform
+import shutil
 import sys
 from dataclasses import dataclass
 from datetime import datetime
@@ -34,6 +35,7 @@ class CicadaCadSidecar:
         self.parts_dir = repo / "examples" / "cad_parts"
         self.schema_path = repo / "tools" / "cicada_cad_sidecar" / "schemas" / "cicada_part_schema_v0_2.json"
         self.export_dir = self.saved / "CADExports"
+        self.stl_dir = self.saved / "STL"
         self.report_dir = self.saved / "CADReports"
         self.intent_dir = self.saved / "CADIntent"
 
@@ -278,6 +280,7 @@ class CicadaCadSidecar:
 </svg>
 """
 
+
     def generate_cadquery(self, part: dict[str, Any], step_path: Path, stl_path: Path | None = None) -> dict[str, str]:
         import cadquery as cq  # type: ignore
         from cadquery import exporters  # type: ignore
@@ -287,31 +290,43 @@ class CicadaCadSidecar:
         depth = float(body["depth"])
         height = float(body["height"])
 
+        # 003P bugfix: build cutters as independent solids and use boolean cut/union.
+        # The old face/workplane chain could collapse selection state after slots/standoffs and
+        # CadQuery then threw: "Can not return the Nth element of an empty list".
         result = cq.Workplane("XY").box(width, depth, height, centered=(False, False, False))
+
+        def cylinder(diameter: float, x: float, y: float, z0: float, zheight: float):
+            return cq.Workplane("XY").center(x, y).circle(diameter / 2.0).extrude(zheight).translate((0, 0, z0))
+
+        def slot_prism(length: float, slot_width: float, x: float, y: float, z0: float, zheight: float):
+            # Axis-aligned V0.3 slot. Built as standalone prism to avoid fragile selected-face chains.
+            return cq.Workplane("XY").center(x, y).slot2D(length, slot_width).extrude(zheight).translate((0, 0, z0))
 
         for feature in part.get("features", []):
             ftype = feature.get("type")
-            x = float(feature.get("x", 0)) - width / 2.0
-            y = float(feature.get("y", 0)) - depth / 2.0
+            x = float(feature.get("x", 0))
+            y = float(feature.get("y", 0))
 
             if ftype == "hole":
-                result = result.faces(">Z").workplane(centerOption="CenterOfBoundBox").center(x, y).hole(float(feature["diameter"])).center(-x, -y)
+                cutter = cylinder(float(feature["diameter"]), x, y, -1.0, height + 2.0)
+                result = result.cut(cutter)
 
-            if ftype == "slot":
-                # Axis-aligned V0.2 slots only. Angled slots are validated as non-exportable for now.
+            elif ftype == "slot":
                 length = float(feature["length"])
                 slot_width = float(feature["width"])
-                result = result.faces(">Z").workplane(centerOption="CenterOfBoundBox").center(x, y).slot2D(length, slot_width).cutThruAll().center(-x, -y)
+                cutter = slot_prism(length, slot_width, x, y, -1.0, height + 2.0)
+                result = result.cut(cutter)
 
-            if ftype == "standoff":
+            elif ftype == "standoff":
                 diameter = float(feature["diameter"])
                 standoff_height = float(feature["height"])
-                post = cq.Workplane("XY").workplane(offset=height).center(float(feature["x"]), float(feature["y"])).circle(diameter / 2.0).extrude(standoff_height)
+                post = cylinder(diameter, x, y, height, standoff_height)
                 result = result.union(post)
 
                 pilot = feature.get("pilot_hole_diameter", 0)
                 if pilot not in (None, "", 0, 0.0):
-                    result = result.faces(">Z").workplane(centerOption="CenterOfBoundBox").center(x, y).hole(float(pilot)).center(-x, -y)
+                    cutter = cylinder(float(pilot), x, y, -1.0, height + standoff_height + 2.0)
+                    result = result.cut(cutter)
 
         step_path.parent.mkdir(parents=True, exist_ok=True)
         exporters.export(result, str(step_path))
@@ -321,6 +336,14 @@ class CicadaCadSidecar:
             stl_path.parent.mkdir(parents=True, exist_ok=True)
             exporters.export(result, str(stl_path))
             outputs["stl"] = str(stl_path)
+
+            # 003P integration fix: publish exact generated STL into the standard STL folder too,
+            # so slicer readiness/dry-run planning can find CAD-generated output.
+            self.stl_dir.mkdir(parents=True, exist_ok=True)
+            standard_stl = self.stl_dir / stl_path.name
+            if standard_stl.resolve() != stl_path.resolve():
+                shutil.copy2(stl_path, standard_stl)
+            outputs["standard_stl"] = str(standard_stl)
 
         return outputs
 
@@ -456,7 +479,7 @@ pre {{ white-space:pre-wrap; word-break:break-word; background:#050505; border:1
 
         report = {
             "project": "CICADA_FORGE_UE",
-            "phase": "003K",
+            "phase": "003P",
             "part_id": part_id,
             "source": str(part_path),
             "validation_pass": validation_pass,
@@ -500,7 +523,7 @@ pre {{ white-space:pre-wrap; word-break:break-word; background:#050505; border:1
 
         payload = {
             "project": "CICADA_FORGE_UE",
-            "phase": "003K",
+            "phase": "003P",
             "examples_checked": len(results),
             "all_pass": all(r["pass"] for r in results),
             "results": results,
@@ -514,7 +537,7 @@ pre {{ white-space:pre-wrap; word-break:break-word; background:#050505; border:1
         engine = self.engine_state()
         payload = {
             "project": "CICADA_FORGE_UE",
-            "phase": "003K",
+            "phase": "003P",
             "repo": str(self.repo),
             "python": sys.version,
             "platform": platform.platform(),

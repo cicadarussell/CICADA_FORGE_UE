@@ -25,7 +25,9 @@ class CommandCenter:
     def commands(self) -> list[dict[str, str]]:
         base = r'powershell -ExecutionPolicy Bypass -File "C:\CICADA\CICADA_APPS\CICADA_FORGE_UE\scripts\cicada_forge.ps1"'
         return [
-            self.command("003O full check", f"{base} -Command phase003O-full-check -OpenReport", "main", "Health, command center, 003M check, ledger, release gate, dashboard."),
+            self.command("003P full integration check", f"{base} -Command phase003P-full-check -OpenReport -OpenDashboard", "main", "Audit, command center, CAD, slicer, health, dashboard, ledger, release gate."),
+            self.command("Full project audit", f"{base} -Command full-project-audit -OpenReport", "main", "Compile/check scripts, phase labels, safety lock, switch forwarding, integration files."),
+            self.command("003O full check", f"{base} -Command phase003O-full-check -OpenReport", "main", "Legacy 003O check kept for compatibility."),
             self.command("Release gate", f"{base} -Command release-gate -OpenReport", "main", "RC_READY / RC_PARTIAL / BLOCKED."),
             self.command("Ledger latest", f"{base} -Command ledger-latest", "main", "Show latest recorded run state."),
             self.command("Passive health report", f"{base} -Command health-report -OpenReport", "main", "Not-run-aware diagnostics."),
@@ -70,7 +72,7 @@ class CommandCenter:
 
         snapshot = {
             "project": "CICADA_FORGE_UE",
-            "phase": "003N",
+            "phase": "003P",
             "generated": datetime.now().isoformat(timespec="seconds"),
             "commands": commands,
             "launchers": launchers,

@@ -1,5 +1,5 @@
 param(
-    [ValidateSet("doctor", "inventory", "demo", "custom-box", "analyze", "manifest-check", "dashboard", "run-report", "full-check", "open-editor", "cad-doctor", "cad-demo", "cad-validate", "cad-generate", "cad-full-check", "cad-sample-pack", "cad-build-mounting-plate", "cad-build-robot-plate", "cad-build-enclosure", "cad-build-sensor-plate", "cad-build-motor-mount", "cad-compare", "cadquery-check", "cadquery-install-user", "env-doctor", "env-plan", "env-create-cadquery", "env-install-cadquery", "slicer-readiness", "env-slicer-full-check", "cad-engine-doctor", "cad-generate-engine", "slicer-dryrun-plan", "phase003M-full-check", "health-report", "command-center", "control-room", "phase003N-full-check", "ledger-record", "ledger-latest", "release-gate", "phase003O-full-check")]
+    [ValidateSet("doctor", "inventory", "demo", "custom-box", "analyze", "manifest-check", "dashboard", "run-report", "full-check", "open-editor", "cad-doctor", "cad-demo", "cad-validate", "cad-generate", "cad-full-check", "cad-sample-pack", "cad-build-mounting-plate", "cad-build-robot-plate", "cad-build-enclosure", "cad-build-sensor-plate", "cad-build-motor-mount", "cad-compare", "cadquery-check", "cadquery-install-user", "env-doctor", "env-plan", "env-create-cadquery", "env-install-cadquery", "slicer-readiness", "env-slicer-full-check", "cad-engine-doctor", "cad-generate-engine", "slicer-dryrun-plan", "phase003M-full-check", "health-report", "command-center", "control-room", "phase003N-full-check", "ledger-record", "ledger-latest", "release-gate", "phase003O-full-check", "full-project-audit", "phase003P-full-check")]
     [string]$Command = "full-check",
 
     [string]$Name = "custom_box",
@@ -151,8 +151,17 @@ if ($Command -eq "release-gate") {
     Invoke-CicadaPowerShellScript -ScriptPath "$Repo\scripts\ledger\cicada_release_gate.ps1" -PassOpenReport:$OpenReport
 }
 
-if ($Command -eq "phase003O-full-check") {
+if ($Command -eq "phase003O-full-check", "full-project-audit", "phase003P-full-check") {
     Invoke-CicadaPowerShellScript -ScriptPath "$Repo\scripts\headless\cicada_headless_phase003O_full_check.ps1" -PassOpenReport:$OpenReport
+}
+
+
+if ($Command -eq "full-project-audit") {
+    Invoke-CicadaPowerShellScript -ScriptPath "$Repo\scripts\diagnostics\cicada_full_project_audit.ps1" -PassOpenReport:$OpenReport
+}
+
+if ($Command -eq "phase003P-full-check") {
+    Invoke-CicadaPowerShellScript -ScriptPath "$Repo\scripts\headless\cicada_headless_phase003P_full_check.ps1" -PassOpenReport:$OpenReport -PassOpenDashboard:$OpenDashboard
 }
 
 if ($Command -eq "health-report") {

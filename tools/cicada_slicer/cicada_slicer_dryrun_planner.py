@@ -18,13 +18,18 @@ class SlicerDryRunPlanner:
         self.repo = repo
         self.saved = repo / "Saved" / "CICADAForge"
         self.stl_dir = self.saved / "STL"
+        self.cad_export_dir = self.saved / "CADExports"
         self.reports = self.saved / "SlicerReports"
 
     def latest_stl(self) -> Path | None:
-        if not self.stl_dir.exists():
-            return None
-        files = sorted(self.stl_dir.glob("*.stl"), key=lambda p: p.stat().st_mtime, reverse=True)
+        # 003P integration fix: normal STL folder first, CADExports fallback second.
+        candidates: list[Path] = []
+        for folder in [self.stl_dir, self.cad_export_dir]:
+            if folder.exists():
+                candidates.extend([p for p in folder.glob("*.stl") if p.is_file()])
+        files = sorted(candidates, key=lambda p: p.stat().st_mtime, reverse=True)
         return files[0] if files else None
+
 
     def find_slicer(self) -> dict[str, Any]:
         checks = []
@@ -54,6 +59,23 @@ class SlicerDryRunPlanner:
                 checks.append({"label": label, "alias": env, "path": value, "exists": exists, "source": "env"})
                 if exists:
                     return {"name": label, "path": value, "source": env, "checks": checks}
+
+        # 003P integration fix: mirror readiness known-path scan.
+        bases = [os.environ.get("ProgramFiles", r"C:\Program Files"), os.environ.get("LOCALAPPDATA", "")]
+        known = [
+            ("OrcaSlicer", r"OrcaSlicer\orca-slicer.exe"),
+            ("BambuStudio", r"Bambu Studio\bambu-studio.exe"),
+            ("PrusaSlicer", r"Prusa3D\PrusaSlicer\prusa-slicer.exe"),
+            ("Cura", r"UltiMaker Cura\UltiMaker-Cura.exe"),
+        ]
+        for base in bases:
+            if not base:
+                continue
+            for label, rel in known:
+                p = Path(base) / rel
+                checks.append({"label": label, "alias": label, "path": str(p), "exists": p.exists(), "source": "known_path"})
+                if p.exists():
+                    return {"name": label, "path": str(p), "source": "known_path", "checks": checks}
 
         return {"name": None, "path": None, "source": None, "checks": checks}
 
@@ -104,7 +126,7 @@ class SlicerDryRunPlanner:
         plan = self.command_plan(slicer, stl)
         data = {
             "project": "CICADA_FORGE_UE",
-            "phase": "003M",
+            "phase": "003P",
             "slicer": slicer,
             "latest_stl": str(stl) if stl else None,
             "dry_run_plan": plan,

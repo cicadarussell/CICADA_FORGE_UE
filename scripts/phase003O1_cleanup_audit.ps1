@@ -34,8 +34,8 @@ $config = Get-Content "Config\CICADAForgeState.ini" -Raw
 $fullCheck = Get-Content "scripts\headless\cicada_headless_phase003O_full_check.ps1" -Raw
 $gitignore = Get-Content ".gitignore" -Raw
 
-if ($config -notmatch "Phase 003O1: cleanup switch fix and test harness are alive") {
-    Write-Host "AUDIT FAIL: 003O1 config marker missing."
+if ($config -notmatch "Phase 003O1|Phase 003P") {
+    Write-Host "AUDIT FAIL: cleanup/current config marker missing."
     exit 1
 }
 
@@ -44,8 +44,8 @@ if ($fullCheck -notmatch "Invoke-CicadaStep") {
     exit 1
 }
 
-if ($fullCheck -match "-OpenReport:\$OpenReport") {
-    Write-Host "AUDIT FAIL: old nested switch forwarding remains in 003O full check."
+if ($fullCheck.Contains('-OpenReport:$OpenReport')) {
+    Write-Host "AUDIT FAIL: old external nested switch forwarding remains in 003O full check."
     exit 1
 }
 
@@ -55,3 +55,4 @@ if ($gitignore -notmatch "\.cicada_envs/") {
 }
 
 Write-Host "AUDIT PASS: Phase 003O1 cleanup files present."
+exit 0

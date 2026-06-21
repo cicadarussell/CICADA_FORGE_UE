@@ -2,28 +2,32 @@
 
 ## Current phase package
 
-Phase 003O1: cleanup switch fix and test harness.
+Phase 003P: full integration audit and bugfix pass.
 
-## Why
+## User request
 
-User pasted PowerShell feedback. Phase 003O installed and audited successfully. `release-gate` worked and returned RC_PARTIAL. `ledger-record` worked. The broken path was `phase003O-full-check -OpenReport`, failing on nested SwitchParameter forwarding.
+User asked to fully check the project, double-check everything, fix bugs, and make sure it is working and integrated.
 
-## Fix
+## Bugs fixed
 
-`resources/headless/cicada_headless_phase003O_full_check.ps1` now uses array-based switch forwarding with `Invoke-CicadaStep`.
+- PowerShell cleanup audit regex bug.
+- Project-wide external nested switch forwarding bugs.
+- Dashboard stale phase display.
+- Health report stale phase display.
+- CadQuery boolean export fragility for slots/standoffs.
+- CAD STL not visible to slicer readiness/dry-run flow.
+- Slicer dry-run planner did not scan known install paths.
+- Release gate ran before dashboard refresh in the full check.
+- Full project audit tool added.
 
 ## Next action
 
-Run tests together, not more feature work:
+Install 003P patch.
+Run:
 
-1. cleanup audit
-2. phase003O-full-check
-3. release-gate
-4. ledger-latest
-5. dashboard
+```powershell
+powershell -ExecutionPolicy Bypass -File "C:\CICADA\CICADA_APPS\CICADA_FORGE_UE\scripts\phase003P_repo_audit.ps1"
+powershell -ExecutionPolicy Bypass -File "C:\CICADA\CICADA_APPS\CICADA_FORGE_UE\scripts\cicada_forge.ps1" -Command phase003P-full-check -OpenReport -OpenDashboard
+```
 
-## Rule
-
-Do not add direct printer send.
-Do not generate G-code.
-Do not open Unreal unless testing Unreal UI.
+Do not add new features until this passes cleanly.

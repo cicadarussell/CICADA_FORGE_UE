@@ -55,6 +55,7 @@ class CicadaDashboard:
             "Launchers": ("Launchers", "*.ps1"),
             "Ledger": ("Ledger", "*.*"),
             "ReleaseGates": ("ReleaseGates", "*.*"),
+            "IntegrationReports": ("IntegrationReports", "*.*"),
         }
 
     def artifact_list(self, kind: str, folder: str, pattern: str, limit: int = 12) -> list[Artifact]:
@@ -106,11 +107,14 @@ class CicadaDashboard:
                 shell=False,
                 timeout=12,
             )
-            lines = [line for line in completed.stdout.splitlines() if line.strip()]
+            raw_lines = [line for line in completed.stdout.splitlines() if line.strip()]
+            ignored_prefixes = ("?? .cicada_envs/", "?? Saved/", "?? Saved\\", "?? DerivedDataCache/")
+            lines = [line for line in raw_lines if not line.startswith(ignored_prefixes)]
             return {
                 "returncode": completed.returncode,
                 "changed_count": len(lines),
-                "lines": lines[:80],
+                "lines": lines[:120],
+                "ignored_generated_count": len(raw_lines) - len(lines),
                 "stderr": completed.stderr.strip(),
             }
         except Exception as exc:
@@ -178,39 +182,39 @@ class CicadaDashboard:
     def recommended_next_command(self) -> str:
         return (
             r'powershell -ExecutionPolicy Bypass -File "C:\CICADA\CICADA_APPS\CICADA_FORGE_UE\scripts\cicada_forge.ps1" '
-            r'-Command cad-full-check -OpenReport -OpenDashboard'
+            r'-Command phase003P-full-check -OpenReport -OpenDashboard'
         )
 
     def command_cards(self) -> list[dict[str, str]]:
         return [
             {
-                "title": "003N full check",
-                "command": r'powershell -ExecutionPolicy Bypass -File "C:\\CICADA\\CICADA_APPS\\CICADA_FORGE_UE\\scripts\\cicada_forge.ps1" -Command phase003N-full-check -OpenReport'
+                "title": "003P full integration check",
+                "command": r'powershell -ExecutionPolicy Bypass -File "C:\CICADA\CICADA_APPS\CICADA_FORGE_UE\scripts\cicada_forge.ps1" -Command phase003P-full-check -OpenReport -OpenDashboard'
             },
             {
-                "title": "Environment doctor",
-                "command": r'powershell -ExecutionPolicy Bypass -File "C:\\CICADA\\CICADA_APPS\\CICADA_FORGE_UE\\scripts\\cicada_forge.ps1" -Command env-doctor -OpenReport'
+                "title": "Full project audit",
+                "command": r'powershell -ExecutionPolicy Bypass -File "C:\CICADA\CICADA_APPS\CICADA_FORGE_UE\scripts\cicada_forge.ps1" -Command full-project-audit -OpenReport'
             },
             {
-                "title": "Slicer readiness",
-                "command": r'powershell -ExecutionPolicy Bypass -File "C:\\CICADA\\CICADA_APPS\\CICADA_FORGE_UE\\scripts\\cicada_forge.ps1" -Command slicer-readiness -OpenReport'
+                "title": "Release gate",
+                "command": r'powershell -ExecutionPolicy Bypass -File "C:\CICADA\CICADA_APPS\CICADA_FORGE_UE\scripts\cicada_forge.ps1" -Command release-gate -OpenReport'
+            },
+            {
+                "title": "Ledger latest",
+                "command": r'powershell -ExecutionPolicy Bypass -File "C:\CICADA\CICADA_APPS\CICADA_FORGE_UE\scripts\cicada_forge.ps1" -Command ledger-latest'
             },
             {
                 "title": "CAD full check",
                 "command": r'powershell -ExecutionPolicy Bypass -File "C:\CICADA\CICADA_APPS\CICADA_FORGE_UE\scripts\cicada_forge.ps1" -Command cad-full-check -OpenReport -OpenDashboard'
             },
             {
-                "title": "Build sensor plate",
-                "command": r'powershell -ExecutionPolicy Bypass -File "C:\CICADA\CICADA_APPS\CICADA_FORGE_UE\scripts\cicada_forge.ps1" -Command cad-build-sensor-plate -Name "robot_sensor_plate" -OpenReport'
+                "title": "Slicer dry-run plan",
+                "command": r'powershell -ExecutionPolicy Bypass -File "C:\CICADA\CICADA_APPS\CICADA_FORGE_UE\scripts\cicada_forge.ps1" -Command slicer-dryrun-plan -OpenReport'
             },
             {
-                "title": "Build slotted motor mount",
-                "command": r'powershell -ExecutionPolicy Bypass -File "C:\CICADA\CICADA_APPS\CICADA_FORGE_UE\scripts\cicada_forge.ps1" -Command cad-build-motor-mount -Name "slotted_motor_mount" -OpenReport'
+                "title": "Open dashboard",
+                "command": r'powershell -ExecutionPolicy Bypass -File "C:\CICADA\CICADA_APPS\CICADA_FORGE_UE\scripts\cicada_forge.ps1" -Command dashboard -OpenDashboard'
             },
-            {
-                "title": "CAD sample pack",
-                "command": r'powershell -ExecutionPolicy Bypass -File "C:\CICADA\CICADA_APPS\CICADA_FORGE_UE\scripts\cicada_forge.ps1" -Command cad-sample-pack -OpenReport -OpenDashboard'
-            }
         ]
 
     def build_snapshot(self) -> dict[str, Any]:
@@ -220,12 +224,17 @@ class CicadaDashboard:
         latest_receipt = self.latest_file("Receipts", "*.json")
         latest_job = self.latest_file("BoxJobs", "*.json")
 
+        phase_state = self.phase_state()
+        current_phase = str(phase_state.get("CurrentPhase", "unknown"))
+        phase_code_match = re.search(r"Phase\s+([0-9A-Z]+)", current_phase)
+        phase_code = phase_code_match.group(1) if phase_code_match else "current"
+
         snapshot = {
             "project": "CICADA_FORGE_UE",
-            "phase": "003H",
+            "phase": phase_code,
             "generated": datetime.now().isoformat(timespec="seconds"),
             "repo": str(self.repo),
-            "phase_state": self.phase_state(),
+            "phase_state": phase_state,
             "safety": self.safety_summary(),
             "git": self.git_status(),
             "capability_matrix": self.capability_matrix(),
@@ -351,7 +360,7 @@ code {{ color:var(--cyan); }}
 <p class="muted">Generated {self.esc(snapshot["generated"])}. Local dashboard only. It does not control machines, because apparently we are still pretending consequences exist.</p>
 
 <div class="cards">
-  <div class="card"><div class="muted">Phase</div><div class="big">003H</div></div>
+  <div class="card"><div class="muted">Phase</div><div class="big">{self.esc(snapshot.get("phase"))}</div></div>
   <div class="card"><div class="muted">Safety</div><div class="big {safety_cls}">{safety_text}</div></div>
   <div class="card"><div class="muted">Git changed files</div><div class="big">{self.esc(git.get("changed_count"))}</div></div>
   <div class="card"><div class="muted">Machine bridge</div><div class="big warn">LOCKED</div></div>

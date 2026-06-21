@@ -36,6 +36,16 @@ class CicadaHealthReport:
         self.saved = repo / "Saved" / "CICADAForge"
         self.reports = self.saved / "HealthReports"
 
+
+    def current_phase(self) -> str:
+        cfg = self.repo / "Config" / "CICADAForgeState.ini"
+        if not cfg.exists():
+            return "unknown"
+        for line in cfg.read_text(encoding="utf-8", errors="replace").splitlines():
+            if line.startswith("CurrentPhase="):
+                return line.split("=", 1)[1].strip()
+        return "unknown"
+
     def latest(self, rel: str, pattern: str) -> Path | None:
         folder = self.saved / rel
         if not folder.exists():
@@ -128,6 +138,7 @@ class CicadaHealthReport:
             ("health reports", "HealthReports", "*.json"),
             ("command center", "CommandCenter", "index.html"),
             ("launchers", "Launchers", "*.ps1"),
+            ("integration reports", "IntegrationReports", "*.json"),
         ]
         for name, folder, pattern in artifact_specs:
             checks.append(self.artifact_check(name, folder, pattern, required=False))
@@ -143,7 +154,7 @@ class CicadaHealthReport:
 
         data = {
             "project": "CICADA_FORGE_UE",
-            "phase": "003N",
+            "phase": self.current_phase(),
             "generated": datetime.now().isoformat(timespec="seconds"),
             "mode": "strict" if self.strict else "passive",
             "verdict": verdict,

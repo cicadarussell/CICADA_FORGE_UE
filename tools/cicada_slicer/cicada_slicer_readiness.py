@@ -29,6 +29,7 @@ class CicadaSlicerReadiness:
         self.saved = repo / "Saved" / "CICADAForge"
         self.reports = self.saved / "SlicerReports"
         self.stl_dir = self.saved / "STL"
+        self.cad_export_dir = self.saved / "CADExports"
 
     def candidates(self) -> list[SlicerCandidate]:
         candidates: list[SlicerCandidate] = []
@@ -76,9 +77,12 @@ class CicadaSlicerReadiness:
         return unique
 
     def latest_stl(self) -> Path | None:
-        if not self.stl_dir.exists():
-            return None
-        files = sorted(self.stl_dir.glob("*.stl"), key=lambda p: p.stat().st_mtime, reverse=True)
+        # 003P integration fix: normal STL folder first, CADExports fallback second.
+        candidates: list[Path] = []
+        for folder in [self.stl_dir, self.cad_export_dir]:
+            if folder.exists():
+                candidates.extend([p for p in folder.glob("*.stl") if p.is_file()])
+        files = sorted(candidates, key=lambda p: p.stat().st_mtime, reverse=True)
         return files[0] if files else None
 
     def version_probe(self, candidate: SlicerCandidate) -> dict[str, Any]:
@@ -102,7 +106,7 @@ class CicadaSlicerReadiness:
 
         data = {
             "project": "CICADA_FORGE_UE",
-            "phase": "003L",
+            "phase": "003P",
             "slicer_candidates": [
                 {
                     "name": c.name,

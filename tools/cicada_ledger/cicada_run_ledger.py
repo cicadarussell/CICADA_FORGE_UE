@@ -25,8 +25,10 @@ class Ledger:
             branch = subprocess.run(["git", "branch", "--show-current"], cwd=self.repo, capture_output=True, text=True, timeout=10)
             head = subprocess.run(["git", "rev-parse", "--short", "HEAD"], cwd=self.repo, capture_output=True, text=True, timeout=10)
             status = subprocess.run(["git", "status", "--short"], cwd=self.repo, capture_output=True, text=True, timeout=10)
-            lines = [x for x in status.stdout.splitlines() if x.strip()]
-            return {"branch": branch.stdout.strip(), "head": head.stdout.strip(), "changed_count": len(lines), "changed_files": lines[:100]}
+            raw_lines = [x for x in status.stdout.splitlines() if x.strip()]
+            ignored_prefixes = ("?? .cicada_envs/", "?? Saved/", "?? Saved\\", "?? DerivedDataCache/")
+            lines = [x for x in raw_lines if not x.startswith(ignored_prefixes)]
+            return {"branch": branch.stdout.strip(), "head": head.stdout.strip(), "changed_count": len(lines), "changed_files": lines[:120], "ignored_generated_count": len(raw_lines) - len(lines)}
         except Exception as exc:
             return {"branch": None, "head": None, "changed_count": None, "error": str(exc)}
 
@@ -56,6 +58,7 @@ class Ledger:
             "stl": ("STL", "*.stl"),
             "print_manifest": ("PrintHandoff", "*.json"),
             "release_gate": ("ReleaseGates", "*.json"),
+            "integration_report": ("IntegrationReports", "*.json"),
         }
         out = {}
         for k, (folder, pattern) in specs.items():
@@ -128,7 +131,7 @@ class Ledger:
             p = self.repo / rel
             checks.append({"name": name, "status": "PASS" if p.exists() else "FAIL", "detail": str(p)})
 
-        for key in ["health", "command_center", "dashboard", "cad_report", "env_report", "slicer_report"]:
+        for key in ["health", "command_center", "dashboard", "cad_report", "env_report", "slicer_report", "integration_report"]:
             exists = artifacts[key]["exists"]
             checks.append({"name": f"artifact:{key}", "status": "PASS" if exists else ("FAIL" if strict else "NOT_RUN"), "detail": artifacts[key]["path"]})
 
@@ -143,7 +146,7 @@ class Ledger:
         verdict = "BLOCKED" if counts["FAIL"] else ("RC_PARTIAL" if counts["NOT_RUN"] or counts["CHECK"] else "RC_READY")
         gate = {
             "project": "CICADA_FORGE_UE",
-            "phase": "003O",
+            "phase": self.phase(),
             "timestamp": self.now(),
             "strict": strict,
             "verdict": verdict,
