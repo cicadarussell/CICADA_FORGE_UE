@@ -27,7 +27,7 @@ FCICADAForgeStatusModel FCICADAForgeStatusModel::MakeFromProjectState(const FCIC
 
     Model.BottomLog = FText::FromString(
         FString::Printf(
-            TEXT("LOG: Phase 002H event log is live. Last run: %s"),
+            TEXT("LOG: Phase 002I session metadata panel is live. Last run: %s"),
             *ProjectState.LastRunState
         )
     );
@@ -49,7 +49,7 @@ FCICADAForgeStatusModel FCICADAForgeStatusModel::MakeFromProjectState(const FCIC
 
     Model.WorkspaceCards.Add(FCICADAForgePanelCard{
         NSLOCTEXT("CICADAForgeStatusModel", "GateCardTitle", "Current Gate"),
-        NSLOCTEXT("CICADAForgeStatusModel", "GateCardBody", "Gate: prove safe UI click events accumulate in the in-memory event log. No persistence, CAD export, sidecar calls, or machine control in this phase.")
+        NSLOCTEXT("CICADAForgeStatusModel", "GateCardBody", "Gate: prove session metadata updates during the local Forge run. No persistence, CAD export, sidecar calls, or machine control in this phase.")
     });
 
     Model.StatusCards.Add(FCICADAForgePanelCard{

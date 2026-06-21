@@ -6,6 +6,8 @@
 #include "Framework/MultiBox/MultiBoxBuilder.h"
 #include "Input/Reply.h"
 #include "Logging/LogMacros.h"
+#include "Misc/DateTime.h"
+#include "Misc/Guid.h"
 #include "Templates/SharedPointer.h"
 #include "ToolMenus.h"
 #include "Widgets/Docking/SDockTab.h"
@@ -71,6 +73,22 @@ namespace CICADAForgeEditorUI
         return EventLogText;
     }
 
+    static FString BuildSessionMetadataText(
+        const FString& SessionId,
+        const FString& SessionStarted,
+        const int32 EventCount,
+        const FString& LastAction
+    )
+    {
+        return FString::Printf(
+            TEXT("Session ID: %s\nStarted: %s\nSafe UI events: %d\nLast action: %s\nPersistence: memory only"),
+            *SessionId,
+            *SessionStarted,
+            EventCount,
+            *LastAction
+        );
+    }
+
     static TSharedRef<SWidget> MakeLiveStatusCard(const FText& Title, const TSharedRef<STextBlock>& LiveText)
     {
         return SNew(SBorder)
@@ -100,7 +118,10 @@ namespace CICADAForgeEditorUI
         const TSharedRef<STextBlock>& VisibleActionStatus,
         const TSharedRef<STextBlock>& LastActionStatus,
         const TSharedRef<STextBlock>& EventLogStatus,
-        const TSharedRef<TArray<FString>>& EventLogLines
+        const TSharedRef<STextBlock>& SessionMetadataStatus,
+        const TSharedRef<TArray<FString>>& EventLogLines,
+        const FString SessionId,
+        const FString SessionStarted
     )
     {
         return SNew(SButton)
@@ -113,7 +134,7 @@ namespace CICADAForgeEditorUI
                 "StubButtonTooltip",
                 "Safe stub only. This updates visible action state, logs an action, and does not modify files, export CAD, or command machines."
             ))
-            .OnClicked_Lambda([Label, VisibleActionStatus, LastActionStatus, EventLogStatus, EventLogLines]()
+            .OnClicked_Lambda([Label, VisibleActionStatus, LastActionStatus, EventLogStatus, SessionMetadataStatus, EventLogLines, SessionId, SessionStarted]()
             {
                 const FString LabelString = Label.ToString();
 
@@ -148,6 +169,9 @@ namespace CICADAForgeEditorUI
                 VisibleActionStatus->SetText(LeftStatus);
                 LastActionStatus->SetText(RightStatus);
                 EventLogStatus->SetText(FText::FromString(BuildEventLogText(EventLogLines)));
+                SessionMetadataStatus->SetText(FText::FromString(
+                    BuildSessionMetadataText(SessionId, SessionStarted, EventLogLines->Num(), LabelString)
+                ));
 
                 UE_LOG(LogCICADAForgeEditor, Display, TEXT("CICADA Forge safe action stub clicked: %s"), *LabelString);
                 return FReply::Handled();
@@ -159,7 +183,10 @@ namespace CICADAForgeEditorUI
         const TSharedRef<STextBlock>& VisibleActionStatus,
         const TSharedRef<STextBlock>& LastActionStatus,
         const TSharedRef<STextBlock>& EventLogStatus,
-        const TSharedRef<TArray<FString>>& EventLogLines
+        const TSharedRef<STextBlock>& SessionMetadataStatus,
+        const TSharedRef<TArray<FString>>& EventLogLines,
+        const FString SessionId,
+        const FString SessionStarted
     )
     {
         TSharedRef<SVerticalBox> ActionBox = SNew(SVerticalBox);
@@ -170,7 +197,16 @@ namespace CICADAForgeEditorUI
             .AutoHeight()
             .Padding(0, 0, 0, 6)
             [
-                MakeActionButton(Action, VisibleActionStatus, LastActionStatus, EventLogStatus, EventLogLines)
+                MakeActionButton(
+                    Action,
+                    VisibleActionStatus,
+                    LastActionStatus,
+                    EventLogStatus,
+                    SessionMetadataStatus,
+                    EventLogLines,
+                    SessionId,
+                    SessionStarted
+                )
             ];
         }
 
@@ -199,7 +235,10 @@ namespace CICADAForgeEditorUI
         const TSharedRef<STextBlock>& VisibleActionStatus,
         const TSharedRef<STextBlock>& LastActionStatus,
         const TSharedRef<STextBlock>& EventLogStatus,
-        const TSharedRef<TArray<FString>>& EventLogLines
+        const TSharedRef<STextBlock>& SessionMetadataStatus,
+        const TSharedRef<TArray<FString>>& EventLogLines,
+        const FString SessionId,
+        const FString SessionStarted
     )
     {
         return SNew(SBorder)
@@ -237,7 +276,16 @@ namespace CICADAForgeEditorUI
                 + SVerticalBox::Slot()
                 .AutoHeight()
                 [
-                    MakeActionList(Model.ProjectActions, VisibleActionStatus, LastActionStatus, EventLogStatus, EventLogLines)
+                    MakeActionList(
+                        Model.ProjectActions,
+                        VisibleActionStatus,
+                        LastActionStatus,
+                        EventLogStatus,
+                        SessionMetadataStatus,
+                        EventLogLines,
+                        SessionId,
+                        SessionStarted
+                    )
                 ]
 
                 + SVerticalBox::Slot()
@@ -279,6 +327,7 @@ namespace CICADAForgeEditorUI
 
     static TSharedRef<SWidget> MakeRightRail(
         const FCICADAForgeStatusModel& Model,
+        const TSharedRef<STextBlock>& SessionMetadataStatus,
         const TSharedRef<STextBlock>& LastActionStatus,
         const TSharedRef<STextBlock>& EventLogStatus
     )
@@ -295,6 +344,16 @@ namespace CICADAForgeEditorUI
                     SNew(STextBlock)
                     .Text(Model.StatusTitle)
                     .AutoWrapText(true)
+                ]
+
+                + SVerticalBox::Slot()
+                .AutoHeight()
+                .Padding(0, 0, 0, 10)
+                [
+                    MakeLiveStatusCard(
+                        NSLOCTEXT("CICADAForgeEditorUI", "SessionMetadataCardTitle", "Session Metadata"),
+                        SessionMetadataStatus
+                    )
                 ]
 
                 + SVerticalBox::Slot()
@@ -390,6 +449,9 @@ TSharedRef<SDockTab> FCICADAForgeEditorModule::SpawnForgeTab(const FSpawnTabArgs
 {
     const FCICADAForgeStatusModel Model = FCICADAForgeStatusModel::MakePhase002DDefault();
 
+    const FString SessionId = FGuid::NewGuid().ToString(EGuidFormats::DigitsWithHyphens);
+    const FString SessionStarted = FDateTime::Now().ToString(TEXT("%Y-%m-%d %H:%M:%S"));
+
     TSharedRef<STextBlock> VisibleActionStatus =
         SNew(STextBlock)
         .Text(NSLOCTEXT(
@@ -413,6 +475,16 @@ TSharedRef<SDockTab> FCICADAForgeEditorModule::SpawnForgeTab(const FSpawnTabArgs
     TSharedRef<STextBlock> EventLogStatus =
         SNew(STextBlock)
         .Text(FText::FromString(CICADAForgeEditorUI::BuildEventLogText(EventLogLines)))
+        .AutoWrapText(true);
+
+    TSharedRef<STextBlock> SessionMetadataStatus =
+        SNew(STextBlock)
+        .Text(FText::FromString(CICADAForgeEditorUI::BuildSessionMetadataText(
+            SessionId,
+            SessionStarted,
+            0,
+            TEXT("none")
+        )))
         .AutoWrapText(true);
 
     return SNew(SDockTab)
@@ -455,7 +527,10 @@ TSharedRef<SDockTab> FCICADAForgeEditorModule::SpawnForgeTab(const FSpawnTabArgs
                             VisibleActionStatus,
                             LastActionStatus,
                             EventLogStatus,
-                            EventLogLines
+                            SessionMetadataStatus,
+                            EventLogLines,
+                            SessionId,
+                            SessionStarted
                         )
                     ]
 
@@ -469,7 +544,12 @@ TSharedRef<SDockTab> FCICADAForgeEditorModule::SpawnForgeTab(const FSpawnTabArgs
                     + SHorizontalBox::Slot()
                     .FillWidth(0.22f)
                     [
-                        CICADAForgeEditorUI::MakeRightRail(Model, LastActionStatus, EventLogStatus)
+                        CICADAForgeEditorUI::MakeRightRail(
+                            Model,
+                            SessionMetadataStatus,
+                            LastActionStatus,
+                            EventLogStatus
+                        )
                     ]
                 ]
 
