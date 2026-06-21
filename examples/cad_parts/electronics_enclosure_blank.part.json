@@ -1,0 +1,69 @@
+{
+  "schema_version": "cicada_part_v0_1",
+  "part_id": "electronics_enclosure_blank",
+  "units": "mm",
+  "material": "PETG",
+  "bodies": [
+    {
+      "id": "body_001",
+      "type": "box",
+      "width": 120,
+      "depth": 70,
+      "height": 28,
+      "origin": [0, 0, 0]
+    }
+  ],
+  "features": [
+    {
+      "id": "corner_hole_001",
+      "type": "hole",
+      "target_body": "body_001",
+      "face": "top",
+      "x": 12,
+      "y": 12,
+      "diameter": 3.4,
+      "depth": "through"
+    },
+    {
+      "id": "corner_hole_002",
+      "type": "hole",
+      "target_body": "body_001",
+      "face": "top",
+      "x": 108,
+      "y": 12,
+      "diameter": 3.4,
+      "depth": "through"
+    },
+    {
+      "id": "corner_hole_003",
+      "type": "hole",
+      "target_body": "body_001",
+      "face": "top",
+      "x": 12,
+      "y": 58,
+      "diameter": 3.4,
+      "depth": "through"
+    },
+    {
+      "id": "corner_hole_004",
+      "type": "hole",
+      "target_body": "body_001",
+      "face": "top",
+      "x": 108,
+      "y": 58,
+      "diameter": 3.4,
+      "depth": "through"
+    }
+  ],
+  "manufacturing": {
+    "process": "3d_print",
+    "layer_height_mm": 0.24,
+    "walls": 4,
+    "infill_percent": 20,
+    "supports": "off"
+  },
+  "safety": {
+    "direct_printer_send": false,
+    "machine_bridge": "LOCKED"
+  }
+}

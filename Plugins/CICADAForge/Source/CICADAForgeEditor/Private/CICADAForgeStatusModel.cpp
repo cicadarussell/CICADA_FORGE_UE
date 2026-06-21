@@ -13,7 +13,7 @@ FCICADAForgeStatusModel FCICADAForgeStatusModel::MakeFromProjectState(const FCIC
 
     Model.BottomLog = FText::FromString(
         FString::Printf(
-            TEXT("LOG: Phase 003H local artifact dashboard and control room are live. Last run: %s"),
+            TEXT("LOG: Phase 003I CAD sidecar contract and exact-geometry boundary are live. Last run: %s"),
             *ProjectState.LastRunState
         )
     );
@@ -24,18 +24,18 @@ FCICADAForgeStatusModel FCICADAForgeStatusModel::MakeFromProjectState(const FCIC
     Model.ProjectActions.Add(NSLOCTEXT("CICADAForgeStatusModel", "ActionExportProof", "Export proof receipt"));
 
     Model.WorkspaceCards.Add(FCICADAForgePanelCard{
-        NSLOCTEXT("CICADAForgeStatusModel", "DashboardCardTitle", "Local Dashboard"),
-        NSLOCTEXT("CICADAForgeStatusModel", "DashboardCardBody", "Phase 003H adds a no-Unreal dashboard over artifacts: latest jobs, STLs, reports, manifests, receipts, run reports, safety state, and recommended next command.")
+        NSLOCTEXT("CICADAForgeStatusModel", "CadContractCardTitle", "CAD Sidecar Contract"),
+        NSLOCTEXT("CICADAForgeStatusModel", "CadContractCardBody", "Phase 003I defines the exact-geometry boundary: JSON part schema, mechanical examples, validation, reports, and optional CadQuery/FreeCAD STEP export if an engine exists.")
     });
 
     Model.WorkspaceCards.Add(FCICADAForgePanelCard{
-        NSLOCTEXT("CICADAForgeStatusModel", "ControlRoomCardTitle", "Control Room"),
-        NSLOCTEXT("CICADAForgeStatusModel", "ControlRoomCardBody", "The dashboard is generated from local files only. It does not call a printer, does not stream G-code, and does not pretend the CAD sidecar exists.")
+        NSLOCTEXT("CICADAForgeStatusModel", "NoFakeStepCardTitle", "No Fake STEP Rule"),
+        NSLOCTEXT("CICADAForgeStatusModel", "NoFakeStepCardBody", "If no exact CAD engine is detected, the sidecar writes a blocked export report instead of pretending triangles are STEP. Astonishingly, honesty is cheaper than haunted manufacturing.")
     });
 
     Model.WorkspaceCards.Add(FCICADAForgePanelCard{
         NSLOCTEXT("CICADAForgeStatusModel", "SafetyCardTitle", "Automation Boundary"),
-        NSLOCTEXT("CICADAForgeStatusModel", "SafetyCardBody", "Allowed: dashboard generation, artifact inspection, headless full-check, STL reports. Blocked: serial ports, G-code streaming, direct printer send.")
+        NSLOCTEXT("CICADAForgeStatusModel", "SafetyCardBody", "Allowed: validate part intent, generate reports, optional local STEP/STL export. Blocked: serial ports, G-code streaming, printer/CNC/pick-and-place commands.")
     });
 
     Model.StatusCards.Add(FCICADAForgePanelCard{
@@ -62,7 +62,7 @@ FCICADAForgeStatusModel FCICADAForgeStatusModel::MakeFromProjectState(const FCIC
         NSLOCTEXT("CICADAForgeStatusModel", "BoundaryCardTitle", "Safety Boundary"),
         FText::FromString(
             ProjectState.bMachineCommandsLocked
-                ? TEXT("Machine commands are locked. Dashboard diagnostics are allowed; printer automation is not.")
+                ? TEXT("Machine commands are locked. CAD sidecar is local/export-only.")
                 : TEXT("WARNING: machine command lock is disabled.")
         )
     });

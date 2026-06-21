@@ -1,0 +1,28 @@
+{
+  "schema_version": "cicada_part_v0_1",
+  "part_id": "simple_box_80x40x12",
+  "units": "mm",
+  "material": "PLA",
+  "bodies": [
+    {
+      "id": "body_001",
+      "type": "box",
+      "width": 80,
+      "depth": 40,
+      "height": 12,
+      "origin": [0, 0, 0]
+    }
+  ],
+  "features": [],
+  "manufacturing": {
+    "process": "3d_print",
+    "layer_height_mm": 0.2,
+    "walls": 3,
+    "infill_percent": 15,
+    "supports": "off"
+  },
+  "safety": {
+    "direct_printer_send": false,
+    "machine_bridge": "LOCKED"
+  }
+}

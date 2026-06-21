@@ -45,6 +45,9 @@ class CicadaDashboard:
             "PrintHandoff": ("PrintHandoff", "*.json"),
             "Receipts": ("Receipts", "*.json"),
             "FeatureGraphs": ("FeatureGraphs", "*.json"),
+            "CADIntent": ("CADIntent", "*.json"),
+            "CADExports": ("CADExports", "*.*"),
+            "CADReports": ("CADReports", "*.*"),
         }
 
     def artifact_list(self, kind: str, folder: str, pattern: str, limit: int = 12) -> list[Artifact]:
@@ -151,7 +154,8 @@ class CicadaDashboard:
             {"capability": "STL generation", "status": "built", "notes": "ASCII STL boxes"},
             {"capability": "STL analysis/report", "status": "built", "notes": "Quality gate + HTML report"},
             {"capability": "Manual print manifest", "status": "built", "notes": "Direct send false"},
-            {"capability": "CAD/STEP sidecar", "status": "not built", "notes": "Next major truth boundary"},
+            {"capability": "CAD/STEP sidecar contract", "status": "built", "notes": "003I exact-geometry boundary"},
+            {"capability": "Exact STEP export", "status": "engine-dependent", "notes": "CadQuery required; no fake STEP if missing"},
             {"capability": "Slicer CLI", "status": "not built", "notes": "Later, dry-run only first"},
             {"capability": "Direct printer bridge", "status": "locked", "notes": "Correctly locked"},
         ]

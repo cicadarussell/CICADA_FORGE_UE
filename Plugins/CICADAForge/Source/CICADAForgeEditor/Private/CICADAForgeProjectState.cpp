@@ -9,11 +9,11 @@ FCICADAForgeProjectState FCICADAForgeProjectState::MakeDefault()
 
     State.ProjectName = TEXT("CICADA_FORGE_UE");
     State.RepoPath = TEXT("C:\\CICADA\\CICADA_APPS\\CICADA_FORGE_UE");
-    State.CurrentPhase = TEXT("Phase 003H: local artifact dashboard and control room are alive");
-    State.EvidenceState = TEXT("PowerShell evidence proves headless STL/job/report path works; Phase 003H adds one-page dashboard and deeper offline diagnostics");
-    State.CadSidecarState = TEXT("STL mesh exporter + editable jobs + analyzer/report + headless control tower + dashboard; exact CAD/STEP sidecar still not built");
-    State.MachineBridgeState = TEXT("Locked - local STL/manifest/report/dashboard generation and manual slicer workflow only");
-    State.LastRunState = TEXT("Project is on track: headless pipeline now has dashboard/control-room view");
+    State.CurrentPhase = TEXT("Phase 003I: CAD sidecar contract and exact-geometry boundary are alive");
+    State.EvidenceState = TEXT("Headless STL/job/report/dashboard path is working; Phase 003I adds CAD sidecar contract, part schema, example mechanical parts, and STEP-readiness diagnostics");
+    State.CadSidecarState = TEXT("CAD sidecar V0 contract built; CadQuery/FreeCAD engine optional and detected by doctor; no fake STEP if engine missing");
+    State.MachineBridgeState = TEXT("Locked - exact-geometry sidecar is local/export-only; no printer/CNC/pick-place command path");
+    State.LastRunState = TEXT("Project is on track: headless outputs, dashboard, and CAD truth boundary now exist");
     State.bMachineCommandsLocked = true;
 
     return State;

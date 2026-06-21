@@ -1,0 +1,49 @@
+{
+  "schema_version": "cicada_part_v0_1",
+  "part_id": "mounting_plate_2holes",
+  "units": "mm",
+  "material": "PETG",
+  "bodies": [
+    {
+      "id": "body_001",
+      "type": "box",
+      "width": 100,
+      "depth": 40,
+      "height": 6,
+      "origin": [0, 0, 0]
+    }
+  ],
+  "features": [
+    {
+      "id": "hole_001",
+      "type": "hole",
+      "target_body": "body_001",
+      "face": "top",
+      "x": 20,
+      "y": 20,
+      "diameter": 5,
+      "depth": "through"
+    },
+    {
+      "id": "hole_002",
+      "type": "hole",
+      "target_body": "body_001",
+      "face": "top",
+      "x": 80,
+      "y": 20,
+      "diameter": 5,
+      "depth": "through"
+    }
+  ],
+  "manufacturing": {
+    "process": "3d_print",
+    "layer_height_mm": 0.24,
+    "walls": 4,
+    "infill_percent": 30,
+    "supports": "off"
+  },
+  "safety": {
+    "direct_printer_send": false,
+    "machine_bridge": "LOCKED"
+  }
+}
