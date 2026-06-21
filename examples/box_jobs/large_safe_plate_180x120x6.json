@@ -1,0 +1,14 @@
+{
+  "name": "large_safe_plate",
+  "box_mm": {
+    "width": 180,
+    "depth": 120,
+    "height": 6
+  },
+  "material": "PLA",
+  "layer_height_mm": 0.28,
+  "walls": 3,
+  "infill_percent": 12,
+  "supports": "off",
+  "note": "Larger but still within generic 220 x 220 x 250 mm build volume."
+}

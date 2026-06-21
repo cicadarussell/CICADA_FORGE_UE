@@ -5,8 +5,10 @@
 #include "Framework/Docking/TabManager.h"
 #include "Framework/MultiBox/MultiBoxBuilder.h"
 #include "HAL/FileManager.h"
+#include "HAL/PlatformProcess.h"
 #include "Input/Reply.h"
 #include "Logging/LogMacros.h"
+#include "Math/Vector.h"
 #include "Misc/DateTime.h"
 #include "Misc/FileHelper.h"
 #include "Misc/Guid.h"
@@ -29,17 +31,51 @@ const FName FCICADAForgeEditorModule::ForgeTabName(TEXT("CICADAForgeMainTab"));
 
 namespace CICADAForgeEditorUI
 {
-    struct FForgeUiState
+    struct FBoxSketch
     {
-        int32 TotalSafeEvents = 0;
+        float WidthMm = 80.0f;
+        float DepthMm = 40.0f;
+        float HeightMm = 12.0f;
+        bool bHasSketch = false;
+        bool bHasExtrude = false;
+        bool bValidated = false;
+        bool bBuildVolumePassed = false;
+    };
+
+    struct FForgeState
+    {
+        int32 TotalEvents = 0;
+        int32 StlExports = 0;
+        int32 ManifestExports = 0;
         int32 ReceiptsWritten = 0;
+
         FString LastAction = TEXT("none");
-        FString LastEvidence = TEXT("none");
-        FString LastReceiptPath = TEXT("none");
         FString LastDiagnostic = TEXT("No diagnostics run yet.");
-        FString BackendInspector = TEXT("Backend Inspector:\nClick a backend/debug button to inspect current working/stub/not-built state.");
-        bool bReceiptReady = false;
-        bool bReceiptSaved = false;
+        FString LastStlPath = TEXT("none");
+        FString LastManifestPath = TEXT("none");
+        FString LastReceiptPath = TEXT("none");
+        FString BackendInspector = TEXT("Backend Inspector:\nReady for sketch box -> STL workflow.\nDirect printer send remains locked.");
+
+        FBoxSketch Sketch;
+        TArray<FString> FeatureOps;
+        TArray<FString> Events;
+    };
+
+    struct FForgeLiveContext
+    {
+        FString SessionId;
+        FString SessionStarted;
+        FForgeState State;
+
+        TSharedPtr<STextBlock> SelectedAction;
+        TSharedPtr<STextBlock> SessionMetadata;
+        TSharedPtr<STextBlock> SketchStatus;
+        TSharedPtr<STextBlock> ExportStatus;
+        TSharedPtr<STextBlock> PrinterStatus;
+        TSharedPtr<STextBlock> BackendHealth;
+        TSharedPtr<STextBlock> BackendInspector;
+        TSharedPtr<STextBlock> EventLog;
+        TSharedPtr<STextBlock> Diagnostics;
     };
 
     static FString EscapeJson(const FString& In)
@@ -52,57 +88,280 @@ namespace CICADAForgeEditorUI
         return Out;
     }
 
-    static TSharedRef<SWidget> MakeCard(const FText& Title, const FText& Body)
+    static FString BoolWord(const bool bValue)
     {
-        return SNew(SBorder)
-            .Padding(10)
-            [
-                SNew(SVerticalBox)
-
-                + SVerticalBox::Slot()
-                .AutoHeight()
-                .Padding(0, 0, 0, 6)
-                [
-                    SNew(STextBlock)
-                    .Text(Title)
-                    .AutoWrapText(true)
-                ]
-
-                + SVerticalBox::Slot()
-                .AutoHeight()
-                [
-                    SNew(STextBlock)
-                    .Text(Body)
-                    .AutoWrapText(true)
-                ]
-            ];
+        return bValue ? TEXT("yes") : TEXT("no");
     }
 
-    static TSharedRef<SWidget> MakeLiveStatusCard(const FText& Title, const TSharedRef<STextBlock>& LiveText)
+    static void AddEvent(const TSharedRef<FForgeLiveContext>& Ctx, const FString& Line)
     {
-        return SNew(SBorder)
-            .Padding(10)
-            [
-                SNew(SVerticalBox)
+        Ctx->State.TotalEvents += 1;
+        Ctx->State.Events.Insert(Line, 0);
 
-                + SVerticalBox::Slot()
-                .AutoHeight()
-                .Padding(0, 0, 0, 6)
-                [
-                    SNew(STextBlock)
-                    .Text(Title)
-                    .AutoWrapText(true)
-                ]
-
-                + SVerticalBox::Slot()
-                .AutoHeight()
-                [
-                    LiveText
-                ]
-            ];
+        while (Ctx->State.Events.Num() > 14)
+        {
+            Ctx->State.Events.RemoveAt(Ctx->State.Events.Num() - 1);
+        }
     }
 
-    static TSharedRef<SWidget> MakeScrollablePanel(const TSharedRef<SWidget>& Inner)
+    static void SetPreset(
+        const TSharedRef<FForgeLiveContext>& Ctx,
+        const float WidthMm,
+        const float DepthMm,
+        const float HeightMm,
+        const FString& PresetName
+    )
+    {
+        Ctx->State.Sketch.WidthMm = WidthMm;
+        Ctx->State.Sketch.DepthMm = DepthMm;
+        Ctx->State.Sketch.HeightMm = HeightMm;
+        Ctx->State.Sketch.bHasSketch = true;
+        Ctx->State.Sketch.bHasExtrude = true;
+        Ctx->State.Sketch.bValidated = false;
+        Ctx->State.Sketch.bBuildVolumePassed = false;
+        Ctx->State.FeatureOps.Empty();
+        Ctx->State.FeatureOps.Add(FString::Printf(TEXT("PRESET %s"), *PresetName));
+        Ctx->State.FeatureOps.Add(FString::Printf(TEXT("SKETCH_RECT width=%.2fmm depth=%.2fmm plane=XY"), WidthMm, DepthMm));
+        Ctx->State.FeatureOps.Add(FString::Printf(TEXT("EXTRUDE height=%.2fmm operation=new_body"), HeightMm));
+        Ctx->State.LastAction = PresetName;
+        Ctx->State.LastDiagnostic = TEXT("Preset sketch box created in memory.");
+        Ctx->State.BackendInspector = FString::Printf(
+            TEXT("Backend Inspector:\nPreset: %s\nSketch/extrude state: READY\nSTL exporter: ready\nDirect printer send: locked"),
+            *PresetName
+        );
+
+        AddEvent(Ctx, FString::Printf(TEXT("PRESET: %s %.2f x %.2f x %.2f mm"), *PresetName, WidthMm, DepthMm, HeightMm));
+    }
+
+    static FString BuildSketchText(const TSharedRef<FForgeLiveContext>& Ctx)
+    {
+        FString Text = FString::Printf(
+            TEXT("Sketch Box Model:\nSketch: %s\nExtrude: %s\nValidated: %s\nBuild volume checked: %s\nWidth: %.2f mm\nDepth: %.2f mm\nHeight: %.2f mm\nOps: %d\n\nFeature operations:"),
+            *BoolWord(Ctx->State.Sketch.bHasSketch),
+            *BoolWord(Ctx->State.Sketch.bHasExtrude),
+            *BoolWord(Ctx->State.Sketch.bValidated),
+            *BoolWord(Ctx->State.Sketch.bBuildVolumePassed),
+            Ctx->State.Sketch.WidthMm,
+            Ctx->State.Sketch.DepthMm,
+            Ctx->State.Sketch.HeightMm,
+            Ctx->State.FeatureOps.Num()
+        );
+
+        if (Ctx->State.FeatureOps.Num() == 0)
+        {
+            Text += TEXT("\nNo feature operations yet.");
+            return Text;
+        }
+
+        for (int32 Index = 0; Index < Ctx->State.FeatureOps.Num(); ++Index)
+        {
+            Text += FString::Printf(TEXT("\n%d. %s"), Index + 1, *Ctx->State.FeatureOps[Index]);
+        }
+
+        return Text;
+    }
+
+    static FString BuildExportText(const TSharedRef<FForgeLiveContext>& Ctx)
+    {
+        return FString::Printf(
+            TEXT("Export State:\nSTL exports: %d\nPrint manifests: %d\nReceipts: %d\nLast STL: %s\nLast manifest: %s\nLast receipt: %s"),
+            Ctx->State.StlExports,
+            Ctx->State.ManifestExports,
+            Ctx->State.ReceiptsWritten,
+            *Ctx->State.LastStlPath,
+            *Ctx->State.LastManifestPath,
+            *Ctx->State.LastReceiptPath
+        );
+    }
+
+    static FString BuildPrinterText(const TSharedRef<FForgeLiveContext>& Ctx)
+    {
+        return FString::Printf(
+            TEXT("Printer Handoff:\nDirect printer send: LOCKED\nG-code streaming: LOCKED\nSerial ports: NOT TOUCHED\nManifest exports: %d\nManual path: open STL in slicer, inspect, slice, print manually."),
+            Ctx->State.ManifestExports
+        );
+    }
+
+    static FString BuildBackendHealthText(const TSharedRef<FForgeLiveContext>& Ctx)
+    {
+        return FString::Printf(
+            TEXT("Backend Health:\nUI: alive\nSketch model: %s\nSTL exporter: %s\nDefault app/slicer launch: available\nCAD/STEP sidecar: NOT BUILT\nPrinter bridge: LOCKED\nLast diagnostic: %s"),
+            Ctx->State.Sketch.bHasExtrude ? TEXT("ready") : TEXT("waiting"),
+            Ctx->State.StlExports > 0 ? TEXT("produced STL") : TEXT("ready"),
+            *Ctx->State.LastDiagnostic
+        );
+    }
+
+    static FString BuildSessionText(const TSharedRef<FForgeLiveContext>& Ctx)
+    {
+        return FString::Printf(
+            TEXT("Session ID: %s\nStarted: %s\nEvents: %d\nSTL exports: %d\nManifests: %d\nLast action: %s"),
+            *Ctx->SessionId,
+            *Ctx->SessionStarted,
+            Ctx->State.TotalEvents,
+            Ctx->State.StlExports,
+            Ctx->State.ManifestExports,
+            *Ctx->State.LastAction
+        );
+    }
+
+    static FString BuildEventLogText(const TSharedRef<FForgeLiveContext>& Ctx)
+    {
+        FString Text = TEXT("Event Log:");
+
+        if (Ctx->State.Events.Num() == 0)
+        {
+            Text += TEXT("\nWaiting for sketch/export/print-handoff events.");
+            return Text;
+        }
+
+        for (int32 Index = 0; Index < Ctx->State.Events.Num(); ++Index)
+        {
+            Text += FString::Printf(TEXT("\n%d. %s"), Index + 1, *Ctx->State.Events[Index]);
+        }
+
+        return Text;
+    }
+
+    static void RefreshPanels(const TSharedRef<FForgeLiveContext>& Ctx)
+    {
+        if (Ctx->SelectedAction.IsValid())
+        {
+            Ctx->SelectedAction->SetText(FText::FromString(FString::Printf(TEXT("Selected action: %s"), *Ctx->State.LastAction)));
+        }
+        if (Ctx->SessionMetadata.IsValid())
+        {
+            Ctx->SessionMetadata->SetText(FText::FromString(BuildSessionText(Ctx)));
+        }
+        if (Ctx->SketchStatus.IsValid())
+        {
+            Ctx->SketchStatus->SetText(FText::FromString(BuildSketchText(Ctx)));
+        }
+        if (Ctx->ExportStatus.IsValid())
+        {
+            Ctx->ExportStatus->SetText(FText::FromString(BuildExportText(Ctx)));
+        }
+        if (Ctx->PrinterStatus.IsValid())
+        {
+            Ctx->PrinterStatus->SetText(FText::FromString(BuildPrinterText(Ctx)));
+        }
+        if (Ctx->BackendHealth.IsValid())
+        {
+            Ctx->BackendHealth->SetText(FText::FromString(BuildBackendHealthText(Ctx)));
+        }
+        if (Ctx->BackendInspector.IsValid())
+        {
+            Ctx->BackendInspector->SetText(FText::FromString(Ctx->State.BackendInspector));
+        }
+        if (Ctx->EventLog.IsValid())
+        {
+            Ctx->EventLog->SetText(FText::FromString(BuildEventLogText(Ctx)));
+        }
+        if (Ctx->Diagnostics.IsValid())
+        {
+            Ctx->Diagnostics->SetText(FText::FromString(FString::Printf(TEXT("Diagnostics:\n%s"), *Ctx->State.LastDiagnostic)));
+        }
+    }
+
+    static void AppendTriangle(FString& Stl, const FVector& A, const FVector& B, const FVector& C)
+    {
+        Stl += TEXT("  facet normal 0 0 0\n");
+        Stl += TEXT("    outer loop\n");
+        Stl += FString::Printf(TEXT("      vertex %.6f %.6f %.6f\n"), A.X, A.Y, A.Z);
+        Stl += FString::Printf(TEXT("      vertex %.6f %.6f %.6f\n"), B.X, B.Y, B.Z);
+        Stl += FString::Printf(TEXT("      vertex %.6f %.6f %.6f\n"), C.X, C.Y, C.Z);
+        Stl += TEXT("    endloop\n");
+        Stl += TEXT("  endfacet\n");
+    }
+
+    static FString BuildBoxStl(const FBoxSketch& Sketch)
+    {
+        const float W = Sketch.WidthMm;
+        const float D = Sketch.DepthMm;
+        const float H = Sketch.HeightMm;
+
+        const FVector V000(0.0f, 0.0f, 0.0f);
+        const FVector V100(W, 0.0f, 0.0f);
+        const FVector V110(W, D, 0.0f);
+        const FVector V010(0.0f, D, 0.0f);
+
+        const FVector V001(0.0f, 0.0f, H);
+        const FVector V101(W, 0.0f, H);
+        const FVector V111(W, D, H);
+        const FVector V011(0.0f, D, H);
+
+        FString Stl = TEXT("solid CICADA_Sketch_Box\n");
+
+        AppendTriangle(Stl, V000, V110, V100);
+        AppendTriangle(Stl, V000, V010, V110);
+
+        AppendTriangle(Stl, V001, V101, V111);
+        AppendTriangle(Stl, V001, V111, V011);
+
+        AppendTriangle(Stl, V000, V100, V101);
+        AppendTriangle(Stl, V000, V101, V001);
+
+        AppendTriangle(Stl, V010, V011, V111);
+        AppendTriangle(Stl, V010, V111, V110);
+
+        AppendTriangle(Stl, V000, V001, V011);
+        AppendTriangle(Stl, V000, V011, V010);
+
+        AppendTriangle(Stl, V100, V110, V111);
+        AppendTriangle(Stl, V100, V111, V101);
+
+        Stl += TEXT("endsolid CICADA_Sketch_Box\n");
+        return Stl;
+    }
+
+    static FString BuildPrintManifestJson(const TSharedRef<FForgeLiveContext>& Ctx)
+    {
+        FString Json;
+        Json += TEXT("{\n");
+        Json += TEXT("  \"project\": \"CICADA_FORGE_UE\",\n");
+        Json += TEXT("  \"phase\": \"003C\",\n");
+        Json += FString::Printf(TEXT("  \"session_id\": \"%s\",\n"), *EscapeJson(Ctx->SessionId));
+        Json += TEXT("  \"job_type\": \"manual_3d_print_handoff\",\n");
+        Json += TEXT("  \"direct_printer_send\": false,\n");
+        Json += TEXT("  \"gcode_streaming\": false,\n");
+        Json += TEXT("  \"machine_bridge\": \"LOCKED\",\n");
+        Json += FString::Printf(TEXT("  \"stl_path\": \"%s\",\n"), *EscapeJson(Ctx->State.LastStlPath));
+        Json += TEXT("  \"suggested_slicer_settings\": {\n");
+        Json += TEXT("    \"layer_height_mm\": 0.20,\n");
+        Json += TEXT("    \"walls\": 3,\n");
+        Json += TEXT("    \"infill_percent\": 15,\n");
+        Json += TEXT("    \"supports\": \"off for simple box\"\n");
+        Json += TEXT("  },\n");
+        Json += TEXT("  \"manual_next_step\": \"Open STL in slicer, inspect model, choose material/profile, slice manually, then print manually.\",\n");
+        Json += TEXT("  \"box_mm\": {\n");
+        Json += FString::Printf(TEXT("    \"width\": %.3f,\n"), Ctx->State.Sketch.WidthMm);
+        Json += FString::Printf(TEXT("    \"depth\": %.3f,\n"), Ctx->State.Sketch.DepthMm);
+        Json += FString::Printf(TEXT("    \"height\": %.3f\n"), Ctx->State.Sketch.HeightMm);
+        Json += TEXT("  }\n");
+        Json += TEXT("}\n");
+        return Json;
+    }
+
+    static FString BuildReceiptJson(const TSharedRef<FForgeLiveContext>& Ctx)
+    {
+        FString Json;
+        Json += TEXT("{\n");
+        Json += TEXT("  \"project\": \"CICADA_FORGE_UE\",\n");
+        Json += TEXT("  \"phase\": \"003C\",\n");
+        Json += FString::Printf(TEXT("  \"session_id\": \"%s\",\n"), *EscapeJson(Ctx->SessionId));
+        Json += FString::Printf(TEXT("  \"events\": %d,\n"), Ctx->State.TotalEvents);
+        Json += FString::Printf(TEXT("  \"last_action\": \"%s\",\n"), *EscapeJson(Ctx->State.LastAction));
+        Json += FString::Printf(TEXT("  \"last_stl_path\": \"%s\",\n"), *EscapeJson(Ctx->State.LastStlPath));
+        Json += FString::Printf(TEXT("  \"last_manifest_path\": \"%s\",\n"), *EscapeJson(Ctx->State.LastManifestPath));
+        Json += TEXT("  \"direct_printer_send\": false,\n");
+        Json += TEXT("  \"machine_bridge\": \"LOCKED\",\n");
+        Json += TEXT("  \"cad_sidecar\": \"NOT_BUILT\",\n");
+        Json += TEXT("  \"scope\": \"STL export and manual slicer handoff only; no direct printer command\"\n");
+        Json += TEXT("}\n");
+        return Json;
+    }
+
+    static TSharedRef<SWidget> MakeScroll(const TSharedRef<SWidget>& Inner)
     {
         return SNew(SScrollBox)
             + SScrollBox::Slot()
@@ -111,343 +370,323 @@ namespace CICADAForgeEditorUI
             ];
     }
 
-    static FString BuildBackendMapText()
+    static TSharedRef<SWidget> MakeLiveCard(const FText& Title, const TSharedRef<STextBlock>& Body)
     {
-        return TEXT("Backend Map:\n")
-            TEXT("UI shell: WORKING\n")
-            TEXT("Slate buttons: WORKING\n")
-            TEXT("Session metadata: WORKING\n")
-            TEXT("In-memory event log: WORKING\n")
-            TEXT("Evidence receipt preview: WORKING\n")
-            TEXT("Local dry-run receipt JSON: WORKING / explicit only\n")
-            TEXT("Log quickscan script: WORKING / PowerShell\n")
-            TEXT("Feature graph data model: NOT BUILT\n")
-            TEXT("Visual node graph: NOT BUILT\n")
-            TEXT("CAD sidecar client: NOT BUILT\n")
-            TEXT("CAD export: NOT BUILT\n")
-            TEXT("Live camera bridge: NOT BUILT\n")
-            TEXT("Agent bridge: NOT BUILT\n")
-            TEXT("Machine bridge: LOCKED / NOT BUILT");
+        return SNew(SBorder)
+            .Padding(10)
+            [
+                SNew(SVerticalBox)
+                + SVerticalBox::Slot().AutoHeight().Padding(0, 0, 0, 6)
+                [
+                    SNew(STextBlock).Text(Title).AutoWrapText(true)
+                ]
+                + SVerticalBox::Slot().AutoHeight()
+                [
+                    Body
+                ]
+            ];
     }
 
-    static FString BuildBackendHealthText(const TSharedRef<FForgeUiState>& UiState)
+    static TSharedRef<SWidget> MakeCard(const FText& Title, const FText& Body)
     {
-        return FString::Printf(
-            TEXT("Backend Health:\nUI: alive\nState updates: alive\nReceipt scope: Saved/CICADAForge/Receipts only\nCAD sidecar: not built\nMachine bridge: locked\nKnown log noise: DDC/EOS/Slate fonts are non-blocking\nLast diagnostic: %s"),
-            *UiState->LastDiagnostic
-        );
+        return SNew(SBorder)
+            .Padding(10)
+            [
+                SNew(SVerticalBox)
+                + SVerticalBox::Slot().AutoHeight().Padding(0, 0, 0, 6)
+                [
+                    SNew(STextBlock).Text(Title).AutoWrapText(true)
+                ]
+                + SVerticalBox::Slot().AutoHeight()
+                [
+                    SNew(STextBlock).Text(Body).AutoWrapText(true)
+                ]
+            ];
     }
 
-    static FString BuildEventLogText(const TSharedRef<TArray<FString>>& EventLogLines)
-    {
-        FString EventLogText = TEXT("Event Log:");
-
-        if (EventLogLines->Num() == 0)
-        {
-            EventLogText += TEXT("\nWaiting for safe UI events.");
-            return EventLogText;
-        }
-
-        for (int32 Index = 0; Index < EventLogLines->Num(); ++Index)
-        {
-            EventLogText += FString::Printf(TEXT("\n%d. %s"), Index + 1, *(*EventLogLines)[Index]);
-        }
-
-        return EventLogText;
-    }
-
-    static FString BuildSessionMetadataText(
-        const FString& SessionId,
-        const FString& SessionStarted,
-        const TSharedRef<FForgeUiState>& UiState
-    )
-    {
-        return FString::Printf(
-            TEXT("Session ID: %s\nStarted: %s\nSafe UI events: %d\nReceipts written: %d\nLast action: %s\nPersistence: memory + explicit dry-run receipt only"),
-            *SessionId,
-            *SessionStarted,
-            UiState->TotalSafeEvents,
-            UiState->ReceiptsWritten,
-            *UiState->LastAction
-        );
-    }
-
-    static FString BuildReceiptPreviewText(const FString& SessionId, const TSharedRef<FForgeUiState>& UiState)
-    {
-        const TCHAR* StatusText = TEXT("waiting for evidence");
-        if (UiState->bReceiptReady)
-        {
-            StatusText = UiState->bReceiptSaved ? TEXT("saved dry-run receipt") : TEXT("ready in memory");
-        }
-
-        return FString::Printf(
-            TEXT("Receipt Preview:\nStatus: %s\nSession ID: %s\nEvents counted: %d\nLast action: %s\nLast evidence: %s\nLast receipt path: %s\nSave mode: explicit local dry-run only"),
-            StatusText,
-            *SessionId,
-            UiState->TotalSafeEvents,
-            *UiState->LastAction,
-            *UiState->LastEvidence,
-            *UiState->LastReceiptPath
-        );
-    }
-
-    static FString BuildDiagnosticsText(const TSharedRef<FForgeUiState>& UiState)
-    {
-        return FString::Printf(
-            TEXT("Diagnostics:\nLast check: %s\nMachine bridge: LOCKED\nCAD sidecar: NOT BUILT\nReceipt write scope: Saved/CICADAForge/Receipts only\nLast evidence: %s"),
-            *UiState->LastDiagnostic,
-            *UiState->LastEvidence
-        );
-    }
-
-    static FString BuildReceiptJson(
-        const FString& SessionId,
-        const FString& SessionStarted,
-        const TSharedRef<FForgeUiState>& UiState,
-        const TSharedRef<TArray<FString>>& EventLogLines
-    )
-    {
-        FString Json;
-        Json += TEXT("{\n");
-        Json += TEXT("  \"project\": \"CICADA_FORGE_UE\",\n");
-        Json += TEXT("  \"phase\": \"002L\",\n");
-        Json += FString::Printf(TEXT("  \"session_id\": \"%s\",\n"), *EscapeJson(SessionId));
-        Json += FString::Printf(TEXT("  \"session_started\": \"%s\",\n"), *EscapeJson(SessionStarted));
-        Json += FString::Printf(TEXT("  \"receipt_written_utc\": \"%s\",\n"), *EscapeJson(FDateTime::UtcNow().ToString(TEXT("%Y-%m-%d %H:%M:%S"))));
-        Json += FString::Printf(TEXT("  \"total_safe_events\": %d,\n"), UiState->TotalSafeEvents);
-        Json += FString::Printf(TEXT("  \"last_action\": \"%s\",\n"), *EscapeJson(UiState->LastAction));
-        Json += FString::Printf(TEXT("  \"last_evidence\": \"%s\",\n"), *EscapeJson(UiState->LastEvidence));
-        Json += TEXT("  \"machine_bridge\": \"LOCKED\",\n");
-        Json += TEXT("  \"cad_sidecar\": \"NOT_BUILT\",\n");
-        Json += TEXT("  \"scope\": \"local dry-run receipt only; no CAD, no sidecar, no machine command\",\n");
-        Json += TEXT("  \"events\": [\n");
-
-        for (int32 Index = 0; Index < EventLogLines->Num(); ++Index)
-        {
-            const FString Suffix = (Index + 1 < EventLogLines->Num()) ? TEXT(",") : TEXT("");
-            Json += FString::Printf(TEXT("    \"%s\"%s\n"), *EscapeJson((*EventLogLines)[Index]), *Suffix);
-        }
-
-        Json += TEXT("  ]\n");
-        Json += TEXT("}\n");
-
-        return Json;
-    }
-
-    static void AddEventLine(const FString& EventLine, const TSharedRef<TArray<FString>>& EventLogLines)
-    {
-        EventLogLines->Insert(EventLine, 0);
-
-        while (EventLogLines->Num() > 8)
-        {
-            EventLogLines->RemoveAt(EventLogLines->Num() - 1);
-        }
-    }
-
-    static void RefreshLivePanels(
-        const FString& SessionId,
-        const FString& SessionStarted,
-        const TSharedRef<FForgeUiState>& UiState,
-        const TSharedRef<TArray<FString>>& EventLogLines,
-        const TSharedRef<STextBlock>& EventLogStatus,
-        const TSharedRef<STextBlock>& SessionMetadataStatus,
-        const TSharedRef<STextBlock>& ReceiptPreviewStatus,
-        const TSharedRef<STextBlock>& DiagnosticsStatus,
-        const TSharedRef<STextBlock>& BackendInspectorStatus,
-        const TSharedRef<STextBlock>& BackendHealthStatus
-    )
-    {
-        EventLogStatus->SetText(FText::FromString(BuildEventLogText(EventLogLines)));
-        SessionMetadataStatus->SetText(FText::FromString(BuildSessionMetadataText(SessionId, SessionStarted, UiState)));
-        ReceiptPreviewStatus->SetText(FText::FromString(BuildReceiptPreviewText(SessionId, UiState)));
-        DiagnosticsStatus->SetText(FText::FromString(BuildDiagnosticsText(UiState)));
-        BackendInspectorStatus->SetText(FText::FromString(UiState->BackendInspector));
-        BackendHealthStatus->SetText(FText::FromString(BuildBackendHealthText(UiState)));
-    }
-
-    static TSharedRef<SWidget> MakeActionButton(
+    static TSharedRef<SWidget> MakePresetButton(
         const FText& Label,
-        const TSharedRef<STextBlock>& VisibleActionStatus,
-        const TSharedRef<STextBlock>& LastActionStatus,
-        const TSharedRef<STextBlock>& EventLogStatus,
-        const TSharedRef<STextBlock>& SessionMetadataStatus,
-        const TSharedRef<STextBlock>& ReceiptPreviewStatus,
-        const TSharedRef<STextBlock>& DiagnosticsStatus,
-        const TSharedRef<STextBlock>& BackendInspectorStatus,
-        const TSharedRef<STextBlock>& BackendHealthStatus,
-        const TSharedRef<TArray<FString>>& EventLogLines,
-        const TSharedRef<FForgeUiState>& UiState,
-        const FString SessionId,
-        const FString SessionStarted
+        const float W,
+        const float D,
+        const float H,
+        const FString PresetName,
+        const TSharedRef<FForgeLiveContext>& Ctx
     )
     {
         return SNew(SButton)
-            .Text(FText::Format(NSLOCTEXT("CICADAForgeEditorUI", "StubButtonFormat", "[stub] {0}"), Label))
-            .OnClicked_Lambda([Label, VisibleActionStatus, LastActionStatus, EventLogStatus, SessionMetadataStatus, ReceiptPreviewStatus, DiagnosticsStatus, BackendInspectorStatus, BackendHealthStatus, EventLogLines, UiState, SessionId, SessionStarted]()
+            .Text(Label)
+            .OnClicked_Lambda([W, D, H, PresetName, Ctx]()
             {
-                const FString LabelString = Label.ToString();
+                SetPreset(Ctx, W, D, H, PresetName);
+                RefreshPanels(Ctx);
 
-                UiState->TotalSafeEvents += 1;
-                UiState->LastAction = LabelString;
-                UiState->LastDiagnostic = TEXT("Action stub clicked safely.");
-                UiState->BackendInspector = FString::Printf(TEXT("Backend Inspector:\nAction selected: %s\nAction backend: UI-only stub\nFile writes: none\nCAD sidecar: not called\nMachine bridge: locked"), *LabelString);
-
-                VisibleActionStatus->SetText(FText::Format(
-                    NSLOCTEXT("CICADAForgeEditorUI", "SelectedActionFormat", "Selected action: {0} - safe stub only"),
-                    Label
-                ));
-
-                LastActionStatus->SetText(FText::Format(
-                    NSLOCTEXT("CICADAForgeEditorUI", "LastActionFormat", "Last Action: {0}\nResult: safe stub logged only"),
-                    Label
-                ));
-
-                AddEventLine(FString::Printf(TEXT("ACTION: %s -> safe stub logged only"), *LabelString), EventLogLines);
-                RefreshLivePanels(SessionId, SessionStarted, UiState, EventLogLines, EventLogStatus, SessionMetadataStatus, ReceiptPreviewStatus, DiagnosticsStatus, BackendInspectorStatus, BackendHealthStatus);
-
-                UE_LOG(LogCICADAForgeEditor, Display, TEXT("CICADA Forge safe action stub clicked: %s"), *LabelString);
+                UE_LOG(LogCICADAForgeEditor, Display, TEXT("CICADA Forge sketch preset: %s"), *PresetName);
                 return FReply::Handled();
             });
     }
 
-    static TSharedRef<SWidget> MakeGenericStateButton(
-        const FText& ButtonText,
-        const FString EventPrefix,
-        const FString NewAction,
-        const FString NewEvidence,
-        const FString NewDiagnostic,
-        const FString NewInspector,
-        const bool bMarkReceiptReady,
-        const TSharedRef<STextBlock>& EventLogStatus,
-        const TSharedRef<STextBlock>& SessionMetadataStatus,
-        const TSharedRef<STextBlock>& ReceiptPreviewStatus,
-        const TSharedRef<STextBlock>& DiagnosticsStatus,
-        const TSharedRef<STextBlock>& BackendInspectorStatus,
-        const TSharedRef<STextBlock>& BackendHealthStatus,
-        const TSharedRef<TArray<FString>>& EventLogLines,
-        const TSharedRef<FForgeUiState>& UiState,
-        const FString SessionId,
-        const FString SessionStarted
-    )
+    static TSharedRef<SWidget> MakeValidateButton(const TSharedRef<FForgeLiveContext>& Ctx)
     {
         return SNew(SButton)
-            .Text(ButtonText)
-            .OnClicked_Lambda([ButtonText, EventPrefix, NewAction, NewEvidence, NewDiagnostic, NewInspector, bMarkReceiptReady, EventLogStatus, SessionMetadataStatus, ReceiptPreviewStatus, DiagnosticsStatus, BackendInspectorStatus, BackendHealthStatus, EventLogLines, UiState, SessionId, SessionStarted]()
+            .Text(NSLOCTEXT("CICADAForgeEditorUI", "ValidateSketch", "[check] Validate sketch + printer fit"))
+            .OnClicked_Lambda([Ctx]()
             {
-                const FString ButtonLabel = ButtonText.ToString();
+                const bool bGeometryValid = Ctx->State.Sketch.bHasSketch
+                    && Ctx->State.Sketch.bHasExtrude
+                    && Ctx->State.Sketch.WidthMm > 0.0f
+                    && Ctx->State.Sketch.DepthMm > 0.0f
+                    && Ctx->State.Sketch.HeightMm > 0.0f;
 
-                UiState->TotalSafeEvents += 1;
-                UiState->LastAction = NewAction.IsEmpty() ? ButtonLabel : NewAction;
-                UiState->LastDiagnostic = NewDiagnostic;
-                UiState->BackendInspector = NewInspector;
+                const bool bFitsGenericPrinter = Ctx->State.Sketch.WidthMm <= 220.0f
+                    && Ctx->State.Sketch.DepthMm <= 220.0f
+                    && Ctx->State.Sketch.HeightMm <= 250.0f;
 
-                if (!NewEvidence.IsEmpty())
-                {
-                    UiState->LastEvidence = NewEvidence;
-                }
+                Ctx->State.Sketch.bValidated = bGeometryValid;
+                Ctx->State.Sketch.bBuildVolumePassed = bFitsGenericPrinter;
+                Ctx->State.LastAction = TEXT("Validate sketch + printer fit");
+                Ctx->State.LastDiagnostic = bGeometryValid && bFitsGenericPrinter
+                    ? TEXT("PASS: geometry valid and fits generic 220 x 220 x 250 mm printer volume.")
+                    : TEXT("FAIL/WARN: geometry missing or does not fit generic printer volume.");
+                Ctx->State.BackendInspector = bGeometryValid
+                    ? TEXT("Backend Inspector:\nValidation backend: WORKING\nGeometry: positive dimensions\nPrinter volume check: generic 220x220x250\nDirect printer send: locked")
+                    : TEXT("Backend Inspector:\nValidation failed.\nCreate/select a preset box first.");
 
-                if (bMarkReceiptReady)
-                {
-                    UiState->bReceiptReady = true;
-                    UiState->bReceiptSaved = false;
-                }
+                AddEvent(Ctx, bGeometryValid && bFitsGenericPrinter ? TEXT("VALIDATION: sketch box PASS") : TEXT("VALIDATION: sketch box FAIL/WARN"));
+                RefreshPanels(Ctx);
 
-                AddEventLine(FString::Printf(TEXT("%s: %s"), *EventPrefix, *ButtonLabel), EventLogLines);
-                RefreshLivePanels(SessionId, SessionStarted, UiState, EventLogLines, EventLogStatus, SessionMetadataStatus, ReceiptPreviewStatus, DiagnosticsStatus, BackendInspectorStatus, BackendHealthStatus);
-
-                UE_LOG(LogCICADAForgeEditor, Display, TEXT("CICADA Forge debug/evidence stub clicked: %s"), *ButtonLabel);
+                UE_LOG(LogCICADAForgeEditor, Display, TEXT("CICADA Forge sketch/printer validation: %s"), (bGeometryValid && bFitsGenericPrinter) ? TEXT("PASS") : TEXT("FAIL_OR_WARN"));
                 return FReply::Handled();
             });
     }
 
-    static TSharedRef<SWidget> MakeSaveReceiptButton(
-        const TSharedRef<STextBlock>& EventLogStatus,
-        const TSharedRef<STextBlock>& SessionMetadataStatus,
-        const TSharedRef<STextBlock>& ReceiptPreviewStatus,
-        const TSharedRef<STextBlock>& DiagnosticsStatus,
-        const TSharedRef<STextBlock>& BackendInspectorStatus,
-        const TSharedRef<STextBlock>& BackendHealthStatus,
-        const TSharedRef<TArray<FString>>& EventLogLines,
-        const TSharedRef<FForgeUiState>& UiState,
-        const FString SessionId,
-        const FString SessionStarted
-    )
+    static TSharedRef<SWidget> MakeExportStlButton(const TSharedRef<FForgeLiveContext>& Ctx)
     {
         return SNew(SButton)
-            .Text(NSLOCTEXT("CICADAForgeEditorUI", "SaveReceiptDryRunButton", "[receipt] Save local dry-run receipt"))
-            .OnClicked_Lambda([EventLogStatus, SessionMetadataStatus, ReceiptPreviewStatus, DiagnosticsStatus, BackendInspectorStatus, BackendHealthStatus, EventLogLines, UiState, SessionId, SessionStarted]()
+            .Text(NSLOCTEXT("CICADAForgeEditorUI", "ExportStl", "[export] Generate STL"))
+            .OnClicked_Lambda([Ctx]()
             {
-                UiState->TotalSafeEvents += 1;
-                UiState->LastAction = TEXT("Save local dry-run receipt");
+                if (!(Ctx->State.Sketch.bHasSketch && Ctx->State.Sketch.bHasExtrude))
+                {
+                    Ctx->State.LastDiagnostic = TEXT("STL export blocked: choose/create a sketch box preset first.");
+                    Ctx->State.BackendInspector = TEXT("Backend Inspector:\nSTL export blocked.\nReason: no sketch/extrude model.");
+                    AddEvent(Ctx, TEXT("STL: export blocked -> no sketch box"));
+                    RefreshPanels(Ctx);
+                    return FReply::Handled();
+                }
 
+                const FString StlDir = FPaths::ProjectSavedDir() / TEXT("CICADAForge/STL");
+                IFileManager::Get().MakeDirectory(*StlDir, true);
+
+                const FString Stamp = FDateTime::Now().ToString(TEXT("%Y%m%d_%H%M%S"));
+                const FString StlPath = StlDir / FString::Printf(
+                    TEXT("CICADA_Box_%.0fx%.0fx%.0f_%s.stl"),
+                    Ctx->State.Sketch.WidthMm,
+                    Ctx->State.Sketch.DepthMm,
+                    Ctx->State.Sketch.HeightMm,
+                    *Stamp
+                );
+
+                const bool bSaved = FFileHelper::SaveStringToFile(BuildBoxStl(Ctx->State.Sketch), *StlPath);
+
+                if (bSaved)
+                {
+                    Ctx->State.StlExports += 1;
+                    Ctx->State.LastStlPath = StlPath;
+                    Ctx->State.LastAction = TEXT("Generate STL");
+                    Ctx->State.LastDiagnostic = TEXT("ASCII STL generated locally. Open in slicer and inspect before printing.");
+                    Ctx->State.BackendInspector = FString::Printf(
+                        TEXT("Backend Inspector:\nSTL exporter: WORKING\nFile: %s\nTriangles: 12\nDirect printer send: locked"),
+                        *StlPath
+                    );
+                    AddEvent(Ctx, FString::Printf(TEXT("STL: generated -> %s"), *StlPath));
+                }
+                else
+                {
+                    Ctx->State.LastDiagnostic = TEXT("STL save failed. Check Saved folder permissions.");
+                    Ctx->State.BackendInspector = TEXT("Backend Inspector:\nSTL exporter: SAVE FAILED");
+                    AddEvent(Ctx, TEXT("STL: save failed"));
+                }
+
+                RefreshPanels(Ctx);
+
+                UE_LOG(LogCICADAForgeEditor, Display, TEXT("CICADA Forge STL export: %s"), bSaved ? *StlPath : TEXT("FAILED"));
+                return FReply::Handled();
+            });
+    }
+
+    static TSharedRef<SWidget> MakeManifestButton(const TSharedRef<FForgeLiveContext>& Ctx)
+    {
+        return SNew(SButton)
+            .Text(NSLOCTEXT("CICADAForgeEditorUI", "PrintManifest", "[printer] Save manual print handoff manifest"))
+            .OnClicked_Lambda([Ctx]()
+            {
+                if (Ctx->State.LastStlPath.Equals(TEXT("none")))
+                {
+                    Ctx->State.LastDiagnostic = TEXT("Print handoff blocked: generate an STL first.");
+                    Ctx->State.BackendInspector = TEXT("Backend Inspector:\nManifest blocked.\nReason: no STL yet.");
+                    AddEvent(Ctx, TEXT("PRINTER: manifest blocked -> no STL"));
+                    RefreshPanels(Ctx);
+                    return FReply::Handled();
+                }
+
+                const FString ManifestDir = FPaths::ProjectSavedDir() / TEXT("CICADAForge/PrintHandoff");
+                IFileManager::Get().MakeDirectory(*ManifestDir, true);
+
+                const FString Stamp = FDateTime::Now().ToString(TEXT("%Y%m%d_%H%M%S"));
+                const FString ManifestPath = ManifestDir / FString::Printf(TEXT("CICADA_PrintHandoff_%s.json"), *Stamp);
+
+                const bool bSaved = FFileHelper::SaveStringToFile(BuildPrintManifestJson(Ctx), *ManifestPath);
+
+                if (bSaved)
+                {
+                    Ctx->State.ManifestExports += 1;
+                    Ctx->State.LastManifestPath = ManifestPath;
+                    Ctx->State.LastAction = TEXT("Save manual print handoff manifest");
+                    Ctx->State.LastDiagnostic = TEXT("Manual print handoff manifest saved. Direct printer send remains locked.");
+                    Ctx->State.BackendInspector = FString::Printf(
+                        TEXT("Backend Inspector:\nPrint handoff: WORKING\nManifest: %s\nSuggested settings written\nDirect printer send: LOCKED"),
+                        *ManifestPath
+                    );
+                    AddEvent(Ctx, FString::Printf(TEXT("PRINTER: manifest saved -> %s"), *ManifestPath));
+                }
+                else
+                {
+                    Ctx->State.LastDiagnostic = TEXT("Print handoff manifest save failed.");
+                    AddEvent(Ctx, TEXT("PRINTER: manifest save failed"));
+                }
+
+                RefreshPanels(Ctx);
+
+                UE_LOG(LogCICADAForgeEditor, Display, TEXT("CICADA Forge print handoff manifest: %s"), bSaved ? *ManifestPath : TEXT("FAILED"));
+                return FReply::Handled();
+            });
+    }
+
+    static TSharedRef<SWidget> MakeOpenStlFolderButton(const TSharedRef<FForgeLiveContext>& Ctx)
+    {
+        return SNew(SButton)
+            .Text(NSLOCTEXT("CICADAForgeEditorUI", "OpenStlFolder", "[folder] Open STL output folder"))
+            .OnClicked_Lambda([Ctx]()
+            {
+                const FString StlDir = FPaths::ProjectSavedDir() / TEXT("CICADAForge/STL");
+                IFileManager::Get().MakeDirectory(*StlDir, true);
+                FPlatformProcess::ExploreFolder(*StlDir);
+
+                Ctx->State.LastAction = TEXT("Open STL output folder");
+                Ctx->State.LastDiagnostic = TEXT("STL output folder opened.");
+                Ctx->State.BackendInspector = FString::Printf(TEXT("Backend Inspector:\nOpened STL folder:\n%s"), *StlDir);
+
+                AddEvent(Ctx, TEXT("FOLDER: opened STL output folder"));
+                RefreshPanels(Ctx);
+
+                return FReply::Handled();
+            });
+    }
+
+    static TSharedRef<SWidget> MakeOpenLatestStlButton(const TSharedRef<FForgeLiveContext>& Ctx)
+    {
+        return SNew(SButton)
+            .Text(NSLOCTEXT("CICADAForgeEditorUI", "OpenLatestStl", "[slicer] Open latest STL in default app"))
+            .OnClicked_Lambda([Ctx]()
+            {
+                if (Ctx->State.LastStlPath.Equals(TEXT("none")))
+                {
+                    Ctx->State.LastDiagnostic = TEXT("Open STL blocked: generate an STL first.");
+                    Ctx->State.BackendInspector = TEXT("Backend Inspector:\nDefault app launch blocked.\nReason: no STL generated yet.");
+                    AddEvent(Ctx, TEXT("SLICER: open blocked -> no STL"));
+                    RefreshPanels(Ctx);
+                    return FReply::Handled();
+                }
+
+                FPlatformProcess::LaunchFileInDefaultExternalApplication(*Ctx->State.LastStlPath);
+
+                Ctx->State.LastAction = TEXT("Open latest STL in default app");
+                Ctx->State.LastDiagnostic = TEXT("Requested Windows open latest STL in default app/slicer. Inspect before printing.");
+                Ctx->State.BackendInspector = FString::Printf(
+                    TEXT("Backend Inspector:\nDefault app launch requested for:\n%s\nDirect printer send: still locked"),
+                    *Ctx->State.LastStlPath
+                );
+
+                AddEvent(Ctx, TEXT("SLICER: requested default app open for latest STL"));
+                RefreshPanels(Ctx);
+
+                UE_LOG(LogCICADAForgeEditor, Display, TEXT("CICADA Forge opened latest STL via default app: %s"), *Ctx->State.LastStlPath);
+                return FReply::Handled();
+            });
+    }
+
+    static TSharedRef<SWidget> MakeSaveReceiptButton(const TSharedRef<FForgeLiveContext>& Ctx)
+    {
+        return SNew(SButton)
+            .Text(NSLOCTEXT("CICADAForgeEditorUI", "SaveReceipt", "[receipt] Save export receipt JSON"))
+            .OnClicked_Lambda([Ctx]()
+            {
                 const FString ReceiptDir = FPaths::ProjectSavedDir() / TEXT("CICADAForge/Receipts");
                 IFileManager::Get().MakeDirectory(*ReceiptDir, true);
 
                 const FString Stamp = FDateTime::Now().ToString(TEXT("%Y%m%d_%H%M%S"));
-                const FString ShortSessionId = SessionId.Left(8);
-                const FString ReceiptPath = ReceiptDir / FString::Printf(TEXT("CICADAForgeReceipt_%s_%s.json"), *Stamp, *ShortSessionId);
+                const FString ReceiptPath = ReceiptDir / FString::Printf(TEXT("CICADA_STL_PrintReady_Receipt_%s.json"), *Stamp);
 
-                const FString ReceiptJson = BuildReceiptJson(SessionId, SessionStarted, UiState, EventLogLines);
-                const bool bSaved = FFileHelper::SaveStringToFile(ReceiptJson, *ReceiptPath);
+                const bool bSaved = FFileHelper::SaveStringToFile(BuildReceiptJson(Ctx), *ReceiptPath);
 
-                UiState->bReceiptSaved = bSaved;
-                UiState->bReceiptReady = true;
-                UiState->ReceiptsWritten += bSaved ? 1 : 0;
-                UiState->LastReceiptPath = bSaved ? ReceiptPath : TEXT("SAVE FAILED");
-                UiState->LastDiagnostic = bSaved ? TEXT("Dry-run receipt saved inside Project/Saved only.") : TEXT("Dry-run receipt save failed.");
-                UiState->BackendInspector = bSaved
-                    ? FString::Printf(TEXT("Backend Inspector:\nReceipt backend: WORKING\nWrite scope: Project/Saved/CICADAForge/Receipts\nPath: %s\nCAD sidecar: not called\nMachine bridge: locked"), *ReceiptPath)
-                    : TEXT("Backend Inspector:\nReceipt backend: SAVE FAILED\nCheck folder permissions.");
+                if (bSaved)
+                {
+                    Ctx->State.ReceiptsWritten += 1;
+                    Ctx->State.LastReceiptPath = ReceiptPath;
+                    Ctx->State.LastAction = TEXT("Save export receipt JSON");
+                    Ctx->State.LastDiagnostic = TEXT("Export receipt saved locally.");
+                    AddEvent(Ctx, FString::Printf(TEXT("RECEIPT: saved -> %s"), *ReceiptPath));
+                }
+                else
+                {
+                    Ctx->State.LastDiagnostic = TEXT("Receipt save failed.");
+                    AddEvent(Ctx, TEXT("RECEIPT: save failed"));
+                }
 
-                AddEventLine(bSaved ? FString::Printf(TEXT("RECEIPT: saved -> %s"), *ReceiptPath) : TEXT("RECEIPT: save failed"), EventLogLines);
-                RefreshLivePanels(SessionId, SessionStarted, UiState, EventLogLines, EventLogStatus, SessionMetadataStatus, ReceiptPreviewStatus, DiagnosticsStatus, BackendInspectorStatus, BackendHealthStatus);
+                RefreshPanels(Ctx);
 
-                UE_LOG(LogCICADAForgeEditor, Display, TEXT("CICADA Forge receipt dry-run save: %s"), bSaved ? *ReceiptPath : TEXT("FAILED"));
+                UE_LOG(LogCICADAForgeEditor, Display, TEXT("CICADA Forge export receipt save: %s"), bSaved ? *ReceiptPath : TEXT("FAILED"));
                 return FReply::Handled();
             });
     }
 
-    static TSharedRef<SWidget> MakeActionList(
-        const TArray<FText>& Actions,
-        const TSharedRef<STextBlock>& VisibleActionStatus,
-        const TSharedRef<STextBlock>& LastActionStatus,
-        const TSharedRef<STextBlock>& EventLogStatus,
-        const TSharedRef<STextBlock>& SessionMetadataStatus,
-        const TSharedRef<STextBlock>& ReceiptPreviewStatus,
-        const TSharedRef<STextBlock>& DiagnosticsStatus,
-        const TSharedRef<STextBlock>& BackendInspectorStatus,
-        const TSharedRef<STextBlock>& BackendHealthStatus,
-        const TSharedRef<TArray<FString>>& EventLogLines,
-        const TSharedRef<FForgeUiState>& UiState,
-        const FString SessionId,
-        const FString SessionStarted
-    )
+    static TSharedRef<SWidget> MakeDebugButton(const FText& Label, const FString Diagnostic, const FString Inspector, const TSharedRef<FForgeLiveContext>& Ctx)
     {
-        TSharedRef<SVerticalBox> ActionBox = SNew(SVerticalBox);
+        return SNew(SButton)
+            .Text(Label)
+            .OnClicked_Lambda([Diagnostic, Inspector, Ctx]()
+            {
+                Ctx->State.LastAction = Label.ToString();
+                Ctx->State.LastDiagnostic = Diagnostic;
+                Ctx->State.BackendInspector = Inspector;
 
-        for (const FText& Action : Actions)
-        {
-            ActionBox->AddSlot().AutoHeight().Padding(0, 0, 0, 6)
-            [
-                MakeActionButton(Action, VisibleActionStatus, LastActionStatus, EventLogStatus, SessionMetadataStatus, ReceiptPreviewStatus, DiagnosticsStatus, BackendInspectorStatus, BackendHealthStatus, EventLogLines, UiState, SessionId, SessionStarted)
-            ];
-        }
+                AddEvent(Ctx, FString::Printf(TEXT("DEBUG: %s"), *Label.ToString()));
+                RefreshPanels(Ctx);
 
-        return ActionBox;
+                UE_LOG(LogCICADAForgeEditor, Display, TEXT("CICADA Forge debug check: %s"), *Diagnostic);
+                return FReply::Handled();
+            });
     }
 
-    static TSharedRef<SWidget> MakeToolControls(
-        const TSharedRef<STextBlock>& EventLogStatus,
-        const TSharedRef<STextBlock>& SessionMetadataStatus,
-        const TSharedRef<STextBlock>& ReceiptPreviewStatus,
-        const TSharedRef<STextBlock>& DiagnosticsStatus,
-        const TSharedRef<STextBlock>& BackendInspectorStatus,
-        const TSharedRef<STextBlock>& BackendHealthStatus,
-        const TSharedRef<TArray<FString>>& EventLogLines,
-        const TSharedRef<FForgeUiState>& UiState,
-        const FString SessionId,
-        const FString SessionStarted
-    )
+    static TSharedRef<SWidget> MakeProjectButton(const FText& Label, const FString ActionName, const TSharedRef<FForgeLiveContext>& Ctx)
+    {
+        return SNew(SButton)
+            .Text(Label)
+            .OnClicked_Lambda([ActionName, Ctx]()
+            {
+                Ctx->State.LastAction = ActionName;
+                Ctx->State.LastDiagnostic = TEXT("Project UI stub clicked. No export triggered.");
+                Ctx->State.BackendInspector = FString::Printf(TEXT("Backend Inspector:\nProject action: %s\nBackend: UI stub\nMachine bridge: locked"), *ActionName);
+
+                AddEvent(Ctx, FString::Printf(TEXT("ACTION: %s -> UI stub"), *ActionName));
+                RefreshPanels(Ctx);
+
+                UE_LOG(LogCICADAForgeEditor, Display, TEXT("CICADA Forge safe action stub clicked: %s"), *ActionName);
+                return FReply::Handled();
+            });
+    }
+
+    static TSharedRef<SWidget> MakeWorkflowControls(const TSharedRef<FForgeLiveContext>& Ctx)
     {
         return SNew(SBorder)
             .Padding(10)
@@ -456,111 +695,85 @@ namespace CICADAForgeEditorUI
 
                 + SVerticalBox::Slot().AutoHeight().Padding(0, 0, 0, 8)
                 [
-                    SNew(STextBlock)
-                    .Text(NSLOCTEXT("CICADAForgeEditorUI", "ControlsTitle", "Evidence + Backend Debug Controls"))
-                    .AutoWrapText(true)
+                    SNew(STextBlock).Text(NSLOCTEXT("CICADAForgeEditorUI", "WorkflowTitle", "Print-Ready Sketch Box Workflow")).AutoWrapText(true)
                 ]
 
                 + SVerticalBox::Slot().AutoHeight().Padding(0, 0, 0, 6)
                 [
-                    MakeGenericStateButton(
-                        NSLOCTEXT("CICADAForgeEditorUI", "EvidenceScreenshotObserved", "[evidence] Screenshot observed"),
-                        TEXT("EVIDENCE"),
-                        TEXT("Evidence: Screenshot observed"),
-                        TEXT("Screenshot observed"),
-                        TEXT("Evidence marker recorded in memory."),
-                        TEXT("Backend Inspector:\nEvidence marker: memory-only\nReceipt preview: ready\nFile writes: none until dry-run receipt button"),
-                        true,
-                        EventLogStatus, SessionMetadataStatus, ReceiptPreviewStatus, DiagnosticsStatus, BackendInspectorStatus, BackendHealthStatus, EventLogLines, UiState, SessionId, SessionStarted
-                    )
+                    MakePresetButton(NSLOCTEXT("CICADAForgeEditorUI", "PresetSmallTest", "[preset] 20 x 20 x 10 mm test block"), 20.0f, 20.0f, 10.0f, TEXT("20 x 20 x 10 mm test block"), Ctx)
                 ]
 
                 + SVerticalBox::Slot().AutoHeight().Padding(0, 0, 0, 6)
                 [
-                    MakeGenericStateButton(
-                        NSLOCTEXT("CICADAForgeEditorUI", "EvidenceOutputLogChecked", "[evidence] Output log checked"),
-                        TEXT("EVIDENCE"),
-                        TEXT("Evidence: Output log checked"),
-                        TEXT("Output log checked"),
-                        TEXT("Output log evidence marker recorded."),
-                        TEXT("Backend Inspector:\nOutput Log: user checked\nKnown noise: DDC/EOS non-blocking\nBuild failure status: manual/log quickscan required"),
-                        true,
-                        EventLogStatus, SessionMetadataStatus, ReceiptPreviewStatus, DiagnosticsStatus, BackendInspectorStatus, BackendHealthStatus, EventLogLines, UiState, SessionId, SessionStarted
-                    )
+                    MakePresetButton(NSLOCTEXT("CICADAForgeEditorUI", "PresetThinPlate", "[preset] 80 x 40 x 4 mm thin plate"), 80.0f, 40.0f, 4.0f, TEXT("80 x 40 x 4 mm thin plate"), Ctx)
                 ]
 
                 + SVerticalBox::Slot().AutoHeight().Padding(0, 0, 0, 6)
                 [
-                    MakeGenericStateButton(
-                        NSLOCTEXT("CICADAForgeEditorUI", "EvidenceUiPassCandidate", "[evidence] UI pass candidate"),
-                        TEXT("EVIDENCE"),
-                        TEXT("Evidence: UI pass candidate"),
-                        TEXT("UI pass candidate"),
-                        TEXT("UI pass candidate marked in memory."),
-                        TEXT("Backend Inspector:\nUI shell: pass candidate\nAction/event/evidence controls: user-visible\nReady for receipt dry-run: yes"),
-                        true,
-                        EventLogStatus, SessionMetadataStatus, ReceiptPreviewStatus, DiagnosticsStatus, BackendInspectorStatus, BackendHealthStatus, EventLogLines, UiState, SessionId, SessionStarted
-                    )
+                    MakePresetButton(NSLOCTEXT("CICADAForgeEditorUI", "PresetBox", "[preset] 80 x 40 x 12 mm box"), 80.0f, 40.0f, 12.0f, TEXT("80 x 40 x 12 mm box"), Ctx)
                 ]
 
-                + SVerticalBox::Slot().AutoHeight().Padding(0, 4, 0, 6)
+                + SVerticalBox::Slot().AutoHeight().Padding(0, 6, 0, 6)
                 [
-                    MakeGenericStateButton(
-                        NSLOCTEXT("CICADAForgeEditorUI", "DiagnosticUiStateCheck", "[debug] Run UI state self-check"),
-                        TEXT("DEBUG"),
-                        TEXT("Run UI state self-check"),
-                        TEXT(""),
-                        TEXT("UI state self-check passed: panels alive, machine locked, CAD sidecar not built."),
-                        TEXT("Backend Inspector:\nUI shell: WORKING\nState object: WORKING\nPanel refresh: WORKING\nReceipt scope: Saved only\nCAD sidecar: NOT BUILT\nMachine bridge: LOCKED"),
-                        false,
-                        EventLogStatus, SessionMetadataStatus, ReceiptPreviewStatus, DiagnosticsStatus, BackendInspectorStatus, BackendHealthStatus, EventLogLines, UiState, SessionId, SessionStarted
-                    )
+                    MakeValidateButton(Ctx)
                 ]
 
                 + SVerticalBox::Slot().AutoHeight().Padding(0, 0, 0, 6)
                 [
-                    MakeGenericStateButton(
-                        NSLOCTEXT("CICADAForgeEditorUI", "DiagnosticNoiseClassifier", "[debug] Classify known log noise"),
-                        TEXT("DEBUG"),
-                        TEXT("Classify known log noise"),
-                        TEXT(""),
-                        TEXT("Known non-blocking noise classified: DDC, EOS no-change, Slate font lazy-load, profiling DLLs, SDK checks."),
-                        TEXT("Backend Inspector:\nKnown non-blocking noise:\n- DerivedDataCache maintenance\n- EOSSDK config no-change\n- Slate Roboto font lazy-load\n- aqProf/Vtune/PIX/RenderDoc\n- platform SDK checks\nBlocker only if Result: Failed / fatal error / module load failure appears."),
-                        false,
-                        EventLogStatus, SessionMetadataStatus, ReceiptPreviewStatus, DiagnosticsStatus, BackendInspectorStatus, BackendHealthStatus, EventLogLines, UiState, SessionId, SessionStarted
-                    )
+                    MakeExportStlButton(Ctx)
                 ]
 
                 + SVerticalBox::Slot().AutoHeight().Padding(0, 0, 0, 6)
                 [
-                    MakeGenericStateButton(
-                        NSLOCTEXT("CICADAForgeEditorUI", "DiagnosticBackendMap", "[debug] Show backend map"),
-                        TEXT("DEBUG"),
-                        TEXT("Show backend map"),
-                        TEXT(""),
-                        TEXT("Backend map inspected."),
-                        BuildBackendMapText(),
-                        false,
-                        EventLogStatus, SessionMetadataStatus, ReceiptPreviewStatus, DiagnosticsStatus, BackendInspectorStatus, BackendHealthStatus, EventLogLines, UiState, SessionId, SessionStarted
-                    )
+                    MakeManifestButton(Ctx)
                 ]
 
-                + SVerticalBox::Slot().AutoHeight().Padding(0, 4, 0, 6)
+                + SVerticalBox::Slot().AutoHeight().Padding(0, 0, 0, 6)
                 [
-                    MakeSaveReceiptButton(EventLogStatus, SessionMetadataStatus, ReceiptPreviewStatus, DiagnosticsStatus, BackendInspectorStatus, BackendHealthStatus, EventLogLines, UiState, SessionId, SessionStarted)
+                    MakeOpenLatestStlButton(Ctx)
+                ]
+
+                + SVerticalBox::Slot().AutoHeight().Padding(0, 0, 0, 6)
+                [
+                    MakeOpenStlFolderButton(Ctx)
                 ]
 
                 + SVerticalBox::Slot().AutoHeight().Padding(0, 0, 0, 0)
                 [
-                    MakeGenericStateButton(
-                        NSLOCTEXT("CICADAForgeEditorUI", "ClearEventLogButton", "[system] Clear visible event log"),
-                        TEXT("SYSTEM"),
-                        TEXT("Clear visible event log"),
-                        TEXT(""),
-                        TEXT("Visible in-memory event log cleared."),
-                        TEXT("Backend Inspector:\nVisible event log cleared.\nSaved receipts were not touched.\nNo file delete occurred."),
-                        false,
-                        EventLogStatus, SessionMetadataStatus, ReceiptPreviewStatus, DiagnosticsStatus, BackendInspectorStatus, BackendHealthStatus, EventLogLines, UiState, SessionId, SessionStarted
+                    MakeSaveReceiptButton(Ctx)
+                ]
+            ];
+    }
+
+    static TSharedRef<SWidget> MakeDebugControls(const TSharedRef<FForgeLiveContext>& Ctx)
+    {
+        return SNew(SBorder)
+            .Padding(10)
+            [
+                SNew(SVerticalBox)
+
+                + SVerticalBox::Slot().AutoHeight().Padding(0, 0, 0, 8)
+                [
+                    SNew(STextBlock).Text(NSLOCTEXT("CICADAForgeEditorUI", "DebugTitle", "Backend Debug Controls")).AutoWrapText(true)
+                ]
+
+                + SVerticalBox::Slot().AutoHeight().Padding(0, 0, 0, 6)
+                [
+                    MakeDebugButton(
+                        NSLOCTEXT("CICADAForgeEditorUI", "DebugMap", "[debug] Show backend map"),
+                        TEXT("Backend map inspected."),
+                        TEXT("Backend Inspector:\nUI shell: WORKING\nPreset sketch model: WORKING\nSTL exporter: WORKING\nDefault app/slicer launch: WORKING / Windows association\nPrint handoff manifest: WORKING\nDirect printer send: LOCKED\nCAD/STEP sidecar: NOT BUILT"),
+                        Ctx
+                    )
+                ]
+
+                + SVerticalBox::Slot().AutoHeight().Padding(0, 0, 0, 6)
+                [
+                    MakeDebugButton(
+                        NSLOCTEXT("CICADAForgeEditorUI", "DebugPrinterBoundary", "[debug] Show printer safety boundary"),
+                        TEXT("Printer safety boundary inspected."),
+                        TEXT("Backend Inspector:\nAllowed: STL export, default app open, handoff manifest.\nBlocked: G-code generation, serial ports, direct print button, machine bridge.\nManual step: inspect STL in slicer, slice manually, print manually."),
+                        Ctx
                     )
                 ]
             ];
@@ -568,34 +781,20 @@ namespace CICADAForgeEditorUI
 
     static TSharedRef<SWidget> MakeCardList(const TArray<FCICADAForgePanelCard>& Cards)
     {
-        TSharedRef<SVerticalBox> CardBox = SNew(SVerticalBox);
+        TSharedRef<SVerticalBox> Box = SNew(SVerticalBox);
 
         for (const FCICADAForgePanelCard& Card : Cards)
         {
-            CardBox->AddSlot().AutoHeight().Padding(0, 0, 0, 10)
+            Box->AddSlot().AutoHeight().Padding(0, 0, 0, 10)
             [
                 MakeCard(Card.Title, Card.Body)
             ];
         }
 
-        return CardBox;
+        return Box;
     }
 
-    static TSharedRef<SWidget> MakeLeftRail(
-        const FCICADAForgeStatusModel& Model,
-        const TSharedRef<STextBlock>& VisibleActionStatus,
-        const TSharedRef<STextBlock>& LastActionStatus,
-        const TSharedRef<STextBlock>& EventLogStatus,
-        const TSharedRef<STextBlock>& SessionMetadataStatus,
-        const TSharedRef<STextBlock>& ReceiptPreviewStatus,
-        const TSharedRef<STextBlock>& DiagnosticsStatus,
-        const TSharedRef<STextBlock>& BackendInspectorStatus,
-        const TSharedRef<STextBlock>& BackendHealthStatus,
-        const TSharedRef<TArray<FString>>& EventLogLines,
-        const TSharedRef<FForgeUiState>& UiState,
-        const FString SessionId,
-        const FString SessionStarted
-    )
+    static TSharedRef<SWidget> MakeLeftRail(const FCICADAForgeStatusModel& Model, const TSharedRef<FForgeLiveContext>& Ctx)
     {
         TSharedRef<SVerticalBox> Inner =
             SNew(SVerticalBox)
@@ -615,32 +814,25 @@ namespace CICADAForgeEditorUI
                 SNew(STextBlock).Text(Model.PhaseLabel).AutoWrapText(true)
             ]
 
-            + SVerticalBox::Slot().AutoHeight()
+            + SVerticalBox::Slot().AutoHeight().Padding(0, 0, 0, 6)
             [
-                MakeActionList(Model.ProjectActions, VisibleActionStatus, LastActionStatus, EventLogStatus, SessionMetadataStatus, ReceiptPreviewStatus, DiagnosticsStatus, BackendInspectorStatus, BackendHealthStatus, EventLogLines, UiState, SessionId, SessionStarted)
+                MakeProjectButton(NSLOCTEXT("CICADAForgeEditorUI", "ActionNew", "[stub] New design"), TEXT("New design"), Ctx)
+            ]
+
+            + SVerticalBox::Slot().AutoHeight().Padding(0, 0, 0, 6)
+            [
+                MakeProjectButton(NSLOCTEXT("CICADAForgeEditorUI", "ActionGraph", "[stub] Open feature graph"), TEXT("Open feature graph"), Ctx)
             ]
 
             + SVerticalBox::Slot().AutoHeight().Padding(0, 12, 0, 0)
             [
-                SNew(SBorder).Padding(8)[VisibleActionStatus]
+                SNew(SBorder).Padding(8)[Ctx->SelectedAction.ToSharedRef()]
             ];
 
-        return SNew(SBorder).Padding(10)[MakeScrollablePanel(Inner)];
+        return SNew(SBorder).Padding(10)[MakeScroll(Inner)];
     }
 
-    static TSharedRef<SWidget> MakeCentreWorkspace(
-        const FCICADAForgeStatusModel& Model,
-        const TSharedRef<STextBlock>& EventLogStatus,
-        const TSharedRef<STextBlock>& SessionMetadataStatus,
-        const TSharedRef<STextBlock>& ReceiptPreviewStatus,
-        const TSharedRef<STextBlock>& DiagnosticsStatus,
-        const TSharedRef<STextBlock>& BackendInspectorStatus,
-        const TSharedRef<STextBlock>& BackendHealthStatus,
-        const TSharedRef<TArray<FString>>& EventLogLines,
-        const TSharedRef<FForgeUiState>& UiState,
-        const FString SessionId,
-        const FString SessionStarted
-    )
+    static TSharedRef<SWidget> MakeCentreWorkspace(const FCICADAForgeStatusModel& Model, const TSharedRef<FForgeLiveContext>& Ctx)
     {
         TSharedRef<SVerticalBox> Inner =
             SNew(SVerticalBox)
@@ -652,12 +844,27 @@ namespace CICADAForgeEditorUI
 
             + SVerticalBox::Slot().AutoHeight().Padding(0, 0, 0, 10)
             [
-                MakeToolControls(EventLogStatus, SessionMetadataStatus, ReceiptPreviewStatus, DiagnosticsStatus, BackendInspectorStatus, BackendHealthStatus, EventLogLines, UiState, SessionId, SessionStarted)
+                MakeWorkflowControls(Ctx)
             ]
 
             + SVerticalBox::Slot().AutoHeight().Padding(0, 0, 0, 10)
             [
-                MakeLiveStatusCard(NSLOCTEXT("CICADAForgeEditorUI", "BackendInspectorTitle", "Backend Inspector"), BackendInspectorStatus)
+                MakeLiveCard(NSLOCTEXT("CICADAForgeEditorUI", "SketchState", "Sketch / Feature State"), Ctx->SketchStatus.ToSharedRef())
+            ]
+
+            + SVerticalBox::Slot().AutoHeight().Padding(0, 0, 0, 10)
+            [
+                MakeLiveCard(NSLOCTEXT("CICADAForgeEditorUI", "ExportState", "Export State"), Ctx->ExportStatus.ToSharedRef())
+            ]
+
+            + SVerticalBox::Slot().AutoHeight().Padding(0, 0, 0, 10)
+            [
+                MakeDebugControls(Ctx)
+            ]
+
+            + SVerticalBox::Slot().AutoHeight().Padding(0, 0, 0, 10)
+            [
+                MakeLiveCard(NSLOCTEXT("CICADAForgeEditorUI", "BackendInspector", "Backend Inspector"), Ctx->BackendInspector.ToSharedRef())
             ]
 
             + SVerticalBox::Slot().AutoHeight()
@@ -665,18 +872,10 @@ namespace CICADAForgeEditorUI
                 MakeCardList(Model.WorkspaceCards)
             ];
 
-        return SNew(SBorder).Padding(12)[MakeScrollablePanel(Inner)];
+        return SNew(SBorder).Padding(12)[MakeScroll(Inner)];
     }
 
-    static TSharedRef<SWidget> MakeRightRail(
-        const FCICADAForgeStatusModel& Model,
-        const TSharedRef<STextBlock>& SessionMetadataStatus,
-        const TSharedRef<STextBlock>& LastActionStatus,
-        const TSharedRef<STextBlock>& EventLogStatus,
-        const TSharedRef<STextBlock>& ReceiptPreviewStatus,
-        const TSharedRef<STextBlock>& DiagnosticsStatus,
-        const TSharedRef<STextBlock>& BackendHealthStatus
-    )
+    static TSharedRef<SWidget> MakeRightRail(const FCICADAForgeStatusModel& Model, const TSharedRef<FForgeLiveContext>& Ctx)
     {
         TSharedRef<SVerticalBox> Inner =
             SNew(SVerticalBox)
@@ -688,32 +887,27 @@ namespace CICADAForgeEditorUI
 
             + SVerticalBox::Slot().AutoHeight().Padding(0, 0, 0, 10)
             [
-                MakeLiveStatusCard(NSLOCTEXT("CICADAForgeEditorUI", "BackendHealthCardTitle", "Backend Health"), BackendHealthStatus)
+                MakeLiveCard(NSLOCTEXT("CICADAForgeEditorUI", "BackendHealth", "Backend Health"), Ctx->BackendHealth.ToSharedRef())
             ]
 
             + SVerticalBox::Slot().AutoHeight().Padding(0, 0, 0, 10)
             [
-                MakeLiveStatusCard(NSLOCTEXT("CICADAForgeEditorUI", "SessionMetadataCardTitle", "Session Metadata"), SessionMetadataStatus)
+                MakeLiveCard(NSLOCTEXT("CICADAForgeEditorUI", "PrinterStatus", "Printer Handoff State"), Ctx->PrinterStatus.ToSharedRef())
             ]
 
             + SVerticalBox::Slot().AutoHeight().Padding(0, 0, 0, 10)
             [
-                MakeLiveStatusCard(NSLOCTEXT("CICADAForgeEditorUI", "LastActionCardTitle", "Last Action"), LastActionStatus)
+                MakeLiveCard(NSLOCTEXT("CICADAForgeEditorUI", "Session", "Session Metadata"), Ctx->SessionMetadata.ToSharedRef())
             ]
 
             + SVerticalBox::Slot().AutoHeight().Padding(0, 0, 0, 10)
             [
-                MakeLiveStatusCard(NSLOCTEXT("CICADAForgeEditorUI", "EventLogCardTitle", "Event Log"), EventLogStatus)
+                MakeLiveCard(NSLOCTEXT("CICADAForgeEditorUI", "Events", "Event Log"), Ctx->EventLog.ToSharedRef())
             ]
 
             + SVerticalBox::Slot().AutoHeight().Padding(0, 0, 0, 10)
             [
-                MakeLiveStatusCard(NSLOCTEXT("CICADAForgeEditorUI", "ReceiptPreviewCardTitle", "Evidence Receipt Preview"), ReceiptPreviewStatus)
-            ]
-
-            + SVerticalBox::Slot().AutoHeight().Padding(0, 0, 0, 10)
-            [
-                MakeLiveStatusCard(NSLOCTEXT("CICADAForgeEditorUI", "DiagnosticsCardTitle", "Diagnostics"), DiagnosticsStatus)
+                MakeLiveCard(NSLOCTEXT("CICADAForgeEditorUI", "Diagnostics", "Diagnostics"), Ctx->Diagnostics.ToSharedRef())
             ]
 
             + SVerticalBox::Slot().AutoHeight()
@@ -721,7 +915,7 @@ namespace CICADAForgeEditorUI
                 MakeCardList(Model.StatusCards)
             ];
 
-        return SNew(SBorder).Padding(10)[MakeScrollablePanel(Inner)];
+        return SNew(SBorder).Padding(10)[MakeScroll(Inner)];
     }
 
     static TSharedRef<SWidget> MakeBottomLog(const FCICADAForgeStatusModel& Model)
@@ -729,9 +923,7 @@ namespace CICADAForgeEditorUI
         return SNew(SBorder)
             .Padding(8)
             [
-                SNew(STextBlock)
-                .Text(Model.BottomLog)
-                .AutoWrapText(true)
+                SNew(STextBlock).Text(Model.BottomLog).AutoWrapText(true)
             ];
     }
 }
@@ -789,53 +981,21 @@ TSharedRef<SDockTab> FCICADAForgeEditorModule::SpawnForgeTab(const FSpawnTabArgs
 {
     const FCICADAForgeStatusModel Model = FCICADAForgeStatusModel::MakePhase002DDefault();
 
-    const FString SessionId = FGuid::NewGuid().ToString(EGuidFormats::DigitsWithHyphens);
-    const FString SessionStarted = FDateTime::Now().ToString(TEXT("%Y-%m-%d %H:%M:%S"));
+    TSharedRef<CICADAForgeEditorUI::FForgeLiveContext> Ctx =
+        MakeShared<CICADAForgeEditorUI::FForgeLiveContext>();
 
-    TSharedRef<CICADAForgeEditorUI::FForgeUiState> UiState =
-        MakeShared<CICADAForgeEditorUI::FForgeUiState>();
+    Ctx->SessionId = FGuid::NewGuid().ToString(EGuidFormats::DigitsWithHyphens);
+    Ctx->SessionStarted = FDateTime::Now().ToString(TEXT("%Y-%m-%d %H:%M:%S"));
 
-    TSharedRef<STextBlock> VisibleActionStatus =
-        SNew(STextBlock)
-        .Text(NSLOCTEXT("CICADAForgeEditorUI", "InitialActionStatus", "Selected action: none"))
-        .AutoWrapText(true);
-
-    TSharedRef<STextBlock> LastActionStatus =
-        SNew(STextBlock)
-        .Text(NSLOCTEXT("CICADAForgeEditorUI", "InitialLastActionStatus", "Last Action: none\nResult: waiting for safe stub click"))
-        .AutoWrapText(true);
-
-    TSharedRef<TArray<FString>> EventLogLines = MakeShared<TArray<FString>>();
-
-    TSharedRef<STextBlock> EventLogStatus =
-        SNew(STextBlock)
-        .Text(FText::FromString(CICADAForgeEditorUI::BuildEventLogText(EventLogLines)))
-        .AutoWrapText(true);
-
-    TSharedRef<STextBlock> SessionMetadataStatus =
-        SNew(STextBlock)
-        .Text(FText::FromString(CICADAForgeEditorUI::BuildSessionMetadataText(SessionId, SessionStarted, UiState)))
-        .AutoWrapText(true);
-
-    TSharedRef<STextBlock> ReceiptPreviewStatus =
-        SNew(STextBlock)
-        .Text(FText::FromString(CICADAForgeEditorUI::BuildReceiptPreviewText(SessionId, UiState)))
-        .AutoWrapText(true);
-
-    TSharedRef<STextBlock> DiagnosticsStatus =
-        SNew(STextBlock)
-        .Text(FText::FromString(CICADAForgeEditorUI::BuildDiagnosticsText(UiState)))
-        .AutoWrapText(true);
-
-    TSharedRef<STextBlock> BackendInspectorStatus =
-        SNew(STextBlock)
-        .Text(FText::FromString(UiState->BackendInspector))
-        .AutoWrapText(true);
-
-    TSharedRef<STextBlock> BackendHealthStatus =
-        SNew(STextBlock)
-        .Text(FText::FromString(CICADAForgeEditorUI::BuildBackendHealthText(UiState)))
-        .AutoWrapText(true);
+    Ctx->SelectedAction = SNew(STextBlock).Text(NSLOCTEXT("CICADAForgeEditorUI", "InitialSelected", "Selected action: none")).AutoWrapText(true);
+    Ctx->SessionMetadata = SNew(STextBlock).Text(FText::FromString(CICADAForgeEditorUI::BuildSessionText(Ctx))).AutoWrapText(true);
+    Ctx->SketchStatus = SNew(STextBlock).Text(FText::FromString(CICADAForgeEditorUI::BuildSketchText(Ctx))).AutoWrapText(true);
+    Ctx->ExportStatus = SNew(STextBlock).Text(FText::FromString(CICADAForgeEditorUI::BuildExportText(Ctx))).AutoWrapText(true);
+    Ctx->PrinterStatus = SNew(STextBlock).Text(FText::FromString(CICADAForgeEditorUI::BuildPrinterText(Ctx))).AutoWrapText(true);
+    Ctx->BackendHealth = SNew(STextBlock).Text(FText::FromString(CICADAForgeEditorUI::BuildBackendHealthText(Ctx))).AutoWrapText(true);
+    Ctx->BackendInspector = SNew(STextBlock).Text(FText::FromString(Ctx->State.BackendInspector)).AutoWrapText(true);
+    Ctx->EventLog = SNew(STextBlock).Text(FText::FromString(CICADAForgeEditorUI::BuildEventLogText(Ctx))).AutoWrapText(true);
+    Ctx->Diagnostics = SNew(STextBlock).Text(FText::FromString(FString::Printf(TEXT("Diagnostics:\n%s"), *Ctx->State.LastDiagnostic))).AutoWrapText(true);
 
     return SNew(SDockTab)
         .TabRole(ETabRole::NomadTab)
@@ -847,16 +1007,12 @@ TSharedRef<SDockTab> FCICADAForgeEditorModule::SpawnForgeTab(const FSpawnTabArgs
 
                 + SVerticalBox::Slot().AutoHeight().Padding(0, 0, 0, 8)
                 [
-                    SNew(STextBlock)
-                    .Text(LOCTEXT("ForgeTitle", "CICADA FORGE"))
-                    .AutoWrapText(true)
+                    SNew(STextBlock).Text(LOCTEXT("ForgeTitle", "CICADA FORGE")).AutoWrapText(true)
                 ]
 
                 + SVerticalBox::Slot().AutoHeight().Padding(0, 0, 0, 12)
                 [
-                    SNew(STextBlock)
-                    .Text(Model.PhaseLabel)
-                    .AutoWrapText(true)
+                    SNew(STextBlock).Text(Model.PhaseLabel).AutoWrapText(true)
                 ]
 
                 + SVerticalBox::Slot().FillHeight(1.0f)
@@ -864,57 +1020,23 @@ TSharedRef<SDockTab> FCICADAForgeEditorModule::SpawnForgeTab(const FSpawnTabArgs
                     SNew(SHorizontalBox)
 
                     + SHorizontalBox::Slot()
-                    .FillWidth(0.24f)
+                    .FillWidth(0.22f)
                     .Padding(0, 0, 8, 0)
                     [
-                        CICADAForgeEditorUI::MakeLeftRail(
-                            Model,
-                            VisibleActionStatus,
-                            LastActionStatus,
-                            EventLogStatus,
-                            SessionMetadataStatus,
-                            ReceiptPreviewStatus,
-                            DiagnosticsStatus,
-                            BackendInspectorStatus,
-                            BackendHealthStatus,
-                            EventLogLines,
-                            UiState,
-                            SessionId,
-                            SessionStarted
-                        )
+                        CICADAForgeEditorUI::MakeLeftRail(Model, Ctx)
                     ]
 
                     + SHorizontalBox::Slot()
-                    .FillWidth(0.50f)
+                    .FillWidth(0.52f)
                     .Padding(0, 0, 8, 0)
                     [
-                        CICADAForgeEditorUI::MakeCentreWorkspace(
-                            Model,
-                            EventLogStatus,
-                            SessionMetadataStatus,
-                            ReceiptPreviewStatus,
-                            DiagnosticsStatus,
-                            BackendInspectorStatus,
-                            BackendHealthStatus,
-                            EventLogLines,
-                            UiState,
-                            SessionId,
-                            SessionStarted
-                        )
+                        CICADAForgeEditorUI::MakeCentreWorkspace(Model, Ctx)
                     ]
 
                     + SHorizontalBox::Slot()
                     .FillWidth(0.26f)
                     [
-                        CICADAForgeEditorUI::MakeRightRail(
-                            Model,
-                            SessionMetadataStatus,
-                            LastActionStatus,
-                            EventLogStatus,
-                            ReceiptPreviewStatus,
-                            DiagnosticsStatus,
-                            BackendHealthStatus
-                        )
+                        CICADAForgeEditorUI::MakeRightRail(Model, Ctx)
                     ]
                 ]
 

@@ -1,0 +1,14 @@
+{
+  "name": "box_80x40x12",
+  "box_mm": {
+    "width": 80,
+    "depth": 40,
+    "height": 12
+  },
+  "material": "PETG",
+  "layer_height_mm": 0.24,
+  "walls": 3,
+  "infill_percent": 15,
+  "supports": "off",
+  "note": "Default CICADA sketch box proof."
+}

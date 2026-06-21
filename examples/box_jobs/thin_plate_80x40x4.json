@@ -1,0 +1,14 @@
+{
+  "name": "thin_plate",
+  "box_mm": {
+    "width": 80,
+    "depth": 40,
+    "height": 4
+  },
+  "material": "PLA",
+  "layer_height_mm": 0.2,
+  "walls": 3,
+  "infill_percent": 20,
+  "supports": "off",
+  "note": "Simple thin plate for dimensional/slicer check."
+}

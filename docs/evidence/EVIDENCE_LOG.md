@@ -1,24 +1,28 @@
 # EVIDENCE LOG
 
-Evidence is not decoration. It is how future CICADA sessions avoid inventing fake history like a LinkedIn founder.
-
-## Phase 002K - Debug Cockpit and Receipt Dry-run
+## Phase 002L - Scrollable Backend Debug Cockpit
 
 Date: 2026-06-21
 
 Verdict:
 
-- [x] PASS visually by screenshot
+- [ ] CURRENT ON GITHUB
+
+## Phase 003B - Sketch Box to STL
+
+Date:
+
+Verdict:
+
+- [ ] ASSUMED / NOT FULLY USER-TESTED
 
 Notes:
 
 ```text
-User screenshot showed Phase 002K debug cockpit and receipt dry-run UI alive.
-User reported UI overflow on the right side.
-Event logs showed DDC/EOS/Slate font messages, all classified as non-blocking if build succeeds and UI works.
+Phase 003B patch created. User asked for next phase immediately, targeting more useful STL/printing workflow.
 ```
 
-## Phase 002L - Scrollable Backend Debug Cockpit
+## Phase 003C - Print-ready STL handoff
 
 Date:
 
@@ -30,10 +34,9 @@ Verdict:
 
 Checks:
 
-- [ ] Scrollable right rail works.
-- [ ] Backend Inspector appears.
-- [ ] Backend Health appears.
-- [ ] Show backend map lists working/not-built/locked systems.
-- [ ] No CAD export.
-- [ ] No sidecar call.
-- [ ] No machine command.
+- [ ] Preset works.
+- [ ] Validation works.
+- [ ] STL export works.
+- [ ] Default app/slicer open works.
+- [ ] Manifest writes.
+- [ ] Direct printer send remains locked.

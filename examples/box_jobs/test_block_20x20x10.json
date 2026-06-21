@@ -1,0 +1,14 @@
+{
+  "name": "test_block",
+  "box_mm": {
+    "width": 20,
+    "depth": 20,
+    "height": 10
+  },
+  "material": "PLA",
+  "layer_height_mm": 0.2,
+  "walls": 3,
+  "infill_percent": 15,
+  "supports": "off",
+  "note": "Fast calibration-style block for first pipeline proof."
+}
