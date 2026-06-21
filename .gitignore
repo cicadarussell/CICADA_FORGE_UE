@@ -1,56 +1,9 @@
-# CICADA FORGE UE gitignore
-# Keep source/config/docs. Do not store generated Unreal sludge unless intentionally needed.
-
-# Unreal generated folders
+# CICADA generated/local-only outputs
+.cicada_envs/
+Saved/CICADAForge/
 Binaries/
-DerivedDataCache/
 Intermediate/
-Saved/
+Plugins/**/Binaries/
+Plugins/**/Intermediate/
 .vs/
-
-# Build outputs
-Build/
-*.sln
-*.xcodeproj
-*.xcworkspace
-
-# Visual Studio
-.vscode/
-*.VC.db
-*.VC.opendb
-*.opensdf
-*.sdf
-*.suo
-*.user
-*.userosscache
-*.sln.docstates
-*.ipch
-
-# Rider / JetBrains
-.idea/
-*.sln.DotSettings.user
-
-# OS junk
-.DS_Store
-Thumbs.db
-desktop.ini
-
-# Python sidecar environments/cache
-sidecars/**/.venv/
-sidecars/**/venv/
-sidecars/**/__pycache__/
-sidecars/**/*.pyc
-sidecars/**/.pytest_cache/
-
-# Local generated exports and evidence binaries
-exports/
-generated/
-receipts/
-evidence/raw/
-evidence/screenshots/
-evidence/videos/
-
-# Logs
-*.log
-
-# Keep docs/source/plugin/config tracked.
+DerivedDataCache/
