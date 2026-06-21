@@ -25,6 +25,14 @@ const FName FCICADAForgeEditorModule::ForgeTabName(TEXT("CICADAForgeMainTab"));
 
 namespace CICADAForgeEditorUI
 {
+    struct FForgeUiState
+    {
+        int32 TotalSafeEvents = 0;
+        FString LastAction = TEXT("none");
+        FString LastEvidence = TEXT("none");
+        bool bReceiptReady = false;
+    };
+
     static TSharedRef<SWidget> MakeCard(const FText& Title, const FText& Body)
     {
         return SNew(SBorder)
@@ -76,17 +84,59 @@ namespace CICADAForgeEditorUI
     static FString BuildSessionMetadataText(
         const FString& SessionId,
         const FString& SessionStarted,
-        const int32 EventCount,
-        const FString& LastAction
+        const TSharedRef<FForgeUiState>& UiState
     )
     {
         return FString::Printf(
             TEXT("Session ID: %s\nStarted: %s\nSafe UI events: %d\nLast action: %s\nPersistence: memory only"),
             *SessionId,
             *SessionStarted,
-            EventCount,
-            *LastAction
+            UiState->TotalSafeEvents,
+            *UiState->LastAction
         );
+    }
+
+    static FString BuildReceiptPreviewText(
+        const FString& SessionId,
+        const TSharedRef<FForgeUiState>& UiState
+    )
+    {
+        return FString::Printf(
+            TEXT("Receipt Preview:\nStatus: %s\nSession ID: %s\nEvents counted: %d\nLast action: %s\nLast evidence: %s\nSave mode: disabled until Phase 003"),
+            UiState->bReceiptReady ? TEXT("ready in memory") : TEXT("waiting for evidence"),
+            *SessionId,
+            UiState->TotalSafeEvents,
+            *UiState->LastAction,
+            *UiState->LastEvidence
+        );
+    }
+
+    static void AddEventLine(
+        const FString& EventLine,
+        const TSharedRef<TArray<FString>>& EventLogLines
+    )
+    {
+        EventLogLines->Insert(EventLine, 0);
+
+        while (EventLogLines->Num() > 5)
+        {
+            EventLogLines->RemoveAt(EventLogLines->Num() - 1);
+        }
+    }
+
+    static void RefreshLivePanels(
+        const FString& SessionId,
+        const FString& SessionStarted,
+        const TSharedRef<FForgeUiState>& UiState,
+        const TSharedRef<TArray<FString>>& EventLogLines,
+        const TSharedRef<STextBlock>& EventLogStatus,
+        const TSharedRef<STextBlock>& SessionMetadataStatus,
+        const TSharedRef<STextBlock>& ReceiptPreviewStatus
+    )
+    {
+        EventLogStatus->SetText(FText::FromString(BuildEventLogText(EventLogLines)));
+        SessionMetadataStatus->SetText(FText::FromString(BuildSessionMetadataText(SessionId, SessionStarted, UiState)));
+        ReceiptPreviewStatus->SetText(FText::FromString(BuildReceiptPreviewText(SessionId, UiState)));
     }
 
     static TSharedRef<SWidget> MakeLiveStatusCard(const FText& Title, const TSharedRef<STextBlock>& LiveText)
@@ -119,7 +169,9 @@ namespace CICADAForgeEditorUI
         const TSharedRef<STextBlock>& LastActionStatus,
         const TSharedRef<STextBlock>& EventLogStatus,
         const TSharedRef<STextBlock>& SessionMetadataStatus,
+        const TSharedRef<STextBlock>& ReceiptPreviewStatus,
         const TSharedRef<TArray<FString>>& EventLogLines,
+        const TSharedRef<FForgeUiState>& UiState,
         const FString SessionId,
         const FString SessionStarted
     )
@@ -134,9 +186,12 @@ namespace CICADAForgeEditorUI
                 "StubButtonTooltip",
                 "Safe stub only. This updates visible action state, logs an action, and does not modify files, export CAD, or command machines."
             ))
-            .OnClicked_Lambda([Label, VisibleActionStatus, LastActionStatus, EventLogStatus, SessionMetadataStatus, EventLogLines, SessionId, SessionStarted]()
+            .OnClicked_Lambda([Label, VisibleActionStatus, LastActionStatus, EventLogStatus, SessionMetadataStatus, ReceiptPreviewStatus, EventLogLines, UiState, SessionId, SessionStarted]()
             {
                 const FString LabelString = Label.ToString();
+
+                UiState->TotalSafeEvents += 1;
+                UiState->LastAction = LabelString;
 
                 const FText LeftStatus = FText::Format(
                     NSLOCTEXT(
@@ -156,24 +211,93 @@ namespace CICADAForgeEditorUI
                     Label
                 );
 
-                EventLogLines->Insert(
-                    FString::Printf(TEXT("%s -> safe stub logged only"), *LabelString),
-                    0
+                AddEventLine(
+                    FString::Printf(TEXT("ACTION: %s -> safe stub logged only"), *LabelString),
+                    EventLogLines
                 );
-
-                while (EventLogLines->Num() > 5)
-                {
-                    EventLogLines->RemoveAt(EventLogLines->Num() - 1);
-                }
 
                 VisibleActionStatus->SetText(LeftStatus);
                 LastActionStatus->SetText(RightStatus);
-                EventLogStatus->SetText(FText::FromString(BuildEventLogText(EventLogLines)));
-                SessionMetadataStatus->SetText(FText::FromString(
-                    BuildSessionMetadataText(SessionId, SessionStarted, EventLogLines->Num(), LabelString)
-                ));
+                RefreshLivePanels(SessionId, SessionStarted, UiState, EventLogLines, EventLogStatus, SessionMetadataStatus, ReceiptPreviewStatus);
 
                 UE_LOG(LogCICADAForgeEditor, Display, TEXT("CICADA Forge safe action stub clicked: %s"), *LabelString);
+                return FReply::Handled();
+            });
+    }
+
+    static TSharedRef<SWidget> MakeEvidenceButton(
+        const FText& Label,
+        const TSharedRef<STextBlock>& EventLogStatus,
+        const TSharedRef<STextBlock>& SessionMetadataStatus,
+        const TSharedRef<STextBlock>& ReceiptPreviewStatus,
+        const TSharedRef<TArray<FString>>& EventLogLines,
+        const TSharedRef<FForgeUiState>& UiState,
+        const FString SessionId,
+        const FString SessionStarted
+    )
+    {
+        return SNew(SButton)
+            .Text(FText::Format(
+                NSLOCTEXT("CICADAForgeEditorUI", "EvidenceButtonFormat", "[evidence] {0}"),
+                Label
+            ))
+            .ToolTipText(NSLOCTEXT(
+                "CICADAForgeEditorUI",
+                "EvidenceButtonTooltip",
+                "Memory-only evidence marker. Does not save files yet."
+            ))
+            .OnClicked_Lambda([Label, EventLogStatus, SessionMetadataStatus, ReceiptPreviewStatus, EventLogLines, UiState, SessionId, SessionStarted]()
+            {
+                const FString LabelString = Label.ToString();
+
+                UiState->TotalSafeEvents += 1;
+                UiState->LastEvidence = LabelString;
+                UiState->bReceiptReady = true;
+
+                AddEventLine(
+                    FString::Printf(TEXT("EVIDENCE: %s -> memory-only marker"), *LabelString),
+                    EventLogLines
+                );
+
+                RefreshLivePanels(SessionId, SessionStarted, UiState, EventLogLines, EventLogStatus, SessionMetadataStatus, ReceiptPreviewStatus);
+
+                UE_LOG(LogCICADAForgeEditor, Display, TEXT("CICADA Forge evidence stub clicked: %s"), *LabelString);
+                return FReply::Handled();
+            });
+    }
+
+    static TSharedRef<SWidget> MakeClearEventLogButton(
+        const TSharedRef<STextBlock>& EventLogStatus,
+        const TSharedRef<STextBlock>& SessionMetadataStatus,
+        const TSharedRef<STextBlock>& ReceiptPreviewStatus,
+        const TSharedRef<TArray<FString>>& EventLogLines,
+        const TSharedRef<FForgeUiState>& UiState,
+        const FString SessionId,
+        const FString SessionStarted
+    )
+    {
+        return SNew(SButton)
+            .Text(NSLOCTEXT("CICADAForgeEditorUI", "ClearEventLogButton", "[system] Clear visible event log"))
+            .ToolTipText(NSLOCTEXT(
+                "CICADAForgeEditorUI",
+                "ClearEventLogTooltip",
+                "Clears the visible in-memory event log only. It does not delete saved files because there are no saved event files yet."
+            ))
+            .OnClicked_Lambda([EventLogStatus, SessionMetadataStatus, ReceiptPreviewStatus, EventLogLines, UiState, SessionId, SessionStarted]()
+            {
+                UiState->TotalSafeEvents += 1;
+                UiState->LastAction = TEXT("Clear visible event log");
+
+                EventLogLines->Empty();
+
+                AddEventLine(
+                    TEXT("SYSTEM: visible event log cleared -> memory only"),
+                    EventLogLines
+                );
+
+                RefreshLivePanels(SessionId, SessionStarted, UiState, EventLogLines, EventLogStatus, SessionMetadataStatus, ReceiptPreviewStatus);
+
+                UE_LOG(LogCICADAForgeEditor, Display, TEXT("CICADA Forge system stub clicked: Clear visible event log"));
                 return FReply::Handled();
             });
     }
@@ -184,7 +308,9 @@ namespace CICADAForgeEditorUI
         const TSharedRef<STextBlock>& LastActionStatus,
         const TSharedRef<STextBlock>& EventLogStatus,
         const TSharedRef<STextBlock>& SessionMetadataStatus,
+        const TSharedRef<STextBlock>& ReceiptPreviewStatus,
         const TSharedRef<TArray<FString>>& EventLogLines,
+        const TSharedRef<FForgeUiState>& UiState,
         const FString SessionId,
         const FString SessionStarted
     )
@@ -203,7 +329,9 @@ namespace CICADAForgeEditorUI
                     LastActionStatus,
                     EventLogStatus,
                     SessionMetadataStatus,
+                    ReceiptPreviewStatus,
                     EventLogLines,
+                    UiState,
                     SessionId,
                     SessionStarted
                 )
@@ -211,6 +339,95 @@ namespace CICADAForgeEditorUI
         }
 
         return ActionBox;
+    }
+
+    static TSharedRef<SWidget> MakeEvidenceControls(
+        const TSharedRef<STextBlock>& EventLogStatus,
+        const TSharedRef<STextBlock>& SessionMetadataStatus,
+        const TSharedRef<STextBlock>& ReceiptPreviewStatus,
+        const TSharedRef<TArray<FString>>& EventLogLines,
+        const TSharedRef<FForgeUiState>& UiState,
+        const FString SessionId,
+        const FString SessionStarted
+    )
+    {
+        return SNew(SBorder)
+            .Padding(10)
+            [
+                SNew(SVerticalBox)
+
+                + SVerticalBox::Slot()
+                .AutoHeight()
+                .Padding(0, 0, 0, 8)
+                [
+                    SNew(STextBlock)
+                    .Text(NSLOCTEXT("CICADAForgeEditorUI", "EvidenceControlsTitle", "Evidence Receipt Controls"))
+                    .AutoWrapText(true)
+                ]
+
+                + SVerticalBox::Slot()
+                .AutoHeight()
+                .Padding(0, 0, 0, 6)
+                [
+                    MakeEvidenceButton(
+                        NSLOCTEXT("CICADAForgeEditorUI", "EvidenceScreenshotObserved", "Screenshot observed"),
+                        EventLogStatus,
+                        SessionMetadataStatus,
+                        ReceiptPreviewStatus,
+                        EventLogLines,
+                        UiState,
+                        SessionId,
+                        SessionStarted
+                    )
+                ]
+
+                + SVerticalBox::Slot()
+                .AutoHeight()
+                .Padding(0, 0, 0, 6)
+                [
+                    MakeEvidenceButton(
+                        NSLOCTEXT("CICADAForgeEditorUI", "EvidenceOutputLogChecked", "Output log checked"),
+                        EventLogStatus,
+                        SessionMetadataStatus,
+                        ReceiptPreviewStatus,
+                        EventLogLines,
+                        UiState,
+                        SessionId,
+                        SessionStarted
+                    )
+                ]
+
+                + SVerticalBox::Slot()
+                .AutoHeight()
+                .Padding(0, 0, 0, 6)
+                [
+                    MakeEvidenceButton(
+                        NSLOCTEXT("CICADAForgeEditorUI", "EvidenceUiPassCandidate", "UI pass candidate"),
+                        EventLogStatus,
+                        SessionMetadataStatus,
+                        ReceiptPreviewStatus,
+                        EventLogLines,
+                        UiState,
+                        SessionId,
+                        SessionStarted
+                    )
+                ]
+
+                + SVerticalBox::Slot()
+                .AutoHeight()
+                .Padding(0, 4, 0, 0)
+                [
+                    MakeClearEventLogButton(
+                        EventLogStatus,
+                        SessionMetadataStatus,
+                        ReceiptPreviewStatus,
+                        EventLogLines,
+                        UiState,
+                        SessionId,
+                        SessionStarted
+                    )
+                ]
+            ];
     }
 
     static TSharedRef<SWidget> MakeCardList(const TArray<FCICADAForgePanelCard>& Cards)
@@ -236,7 +453,9 @@ namespace CICADAForgeEditorUI
         const TSharedRef<STextBlock>& LastActionStatus,
         const TSharedRef<STextBlock>& EventLogStatus,
         const TSharedRef<STextBlock>& SessionMetadataStatus,
+        const TSharedRef<STextBlock>& ReceiptPreviewStatus,
         const TSharedRef<TArray<FString>>& EventLogLines,
+        const TSharedRef<FForgeUiState>& UiState,
         const FString SessionId,
         const FString SessionStarted
     )
@@ -282,7 +501,9 @@ namespace CICADAForgeEditorUI
                         LastActionStatus,
                         EventLogStatus,
                         SessionMetadataStatus,
+                        ReceiptPreviewStatus,
                         EventLogLines,
+                        UiState,
                         SessionId,
                         SessionStarted
                     )
@@ -301,7 +522,16 @@ namespace CICADAForgeEditorUI
             ];
     }
 
-    static TSharedRef<SWidget> MakeCentreWorkspace(const FCICADAForgeStatusModel& Model)
+    static TSharedRef<SWidget> MakeCentreWorkspace(
+        const FCICADAForgeStatusModel& Model,
+        const TSharedRef<STextBlock>& EventLogStatus,
+        const TSharedRef<STextBlock>& SessionMetadataStatus,
+        const TSharedRef<STextBlock>& ReceiptPreviewStatus,
+        const TSharedRef<TArray<FString>>& EventLogLines,
+        const TSharedRef<FForgeUiState>& UiState,
+        const FString SessionId,
+        const FString SessionStarted
+    )
     {
         return SNew(SBorder)
             .Padding(12)
@@ -318,6 +548,21 @@ namespace CICADAForgeEditorUI
                 ]
 
                 + SVerticalBox::Slot()
+                .AutoHeight()
+                .Padding(0, 0, 0, 10)
+                [
+                    MakeEvidenceControls(
+                        EventLogStatus,
+                        SessionMetadataStatus,
+                        ReceiptPreviewStatus,
+                        EventLogLines,
+                        UiState,
+                        SessionId,
+                        SessionStarted
+                    )
+                ]
+
+                + SVerticalBox::Slot()
                 .FillHeight(1.0f)
                 [
                     MakeCardList(Model.WorkspaceCards)
@@ -329,7 +574,8 @@ namespace CICADAForgeEditorUI
         const FCICADAForgeStatusModel& Model,
         const TSharedRef<STextBlock>& SessionMetadataStatus,
         const TSharedRef<STextBlock>& LastActionStatus,
-        const TSharedRef<STextBlock>& EventLogStatus
+        const TSharedRef<STextBlock>& EventLogStatus,
+        const TSharedRef<STextBlock>& ReceiptPreviewStatus
     )
     {
         return SNew(SBorder)
@@ -373,6 +619,16 @@ namespace CICADAForgeEditorUI
                     MakeLiveStatusCard(
                         NSLOCTEXT("CICADAForgeEditorUI", "EventLogCardTitle", "Event Log"),
                         EventLogStatus
+                    )
+                ]
+
+                + SVerticalBox::Slot()
+                .AutoHeight()
+                .Padding(0, 0, 0, 10)
+                [
+                    MakeLiveStatusCard(
+                        NSLOCTEXT("CICADAForgeEditorUI", "ReceiptPreviewCardTitle", "Evidence Receipt Preview"),
+                        ReceiptPreviewStatus
                     )
                 ]
 
@@ -452,6 +708,9 @@ TSharedRef<SDockTab> FCICADAForgeEditorModule::SpawnForgeTab(const FSpawnTabArgs
     const FString SessionId = FGuid::NewGuid().ToString(EGuidFormats::DigitsWithHyphens);
     const FString SessionStarted = FDateTime::Now().ToString(TEXT("%Y-%m-%d %H:%M:%S"));
 
+    TSharedRef<CICADAForgeEditorUI::FForgeUiState> UiState =
+        MakeShared<CICADAForgeEditorUI::FForgeUiState>();
+
     TSharedRef<STextBlock> VisibleActionStatus =
         SNew(STextBlock)
         .Text(NSLOCTEXT(
@@ -482,8 +741,15 @@ TSharedRef<SDockTab> FCICADAForgeEditorModule::SpawnForgeTab(const FSpawnTabArgs
         .Text(FText::FromString(CICADAForgeEditorUI::BuildSessionMetadataText(
             SessionId,
             SessionStarted,
-            0,
-            TEXT("none")
+            UiState
+        )))
+        .AutoWrapText(true);
+
+    TSharedRef<STextBlock> ReceiptPreviewStatus =
+        SNew(STextBlock)
+        .Text(FText::FromString(CICADAForgeEditorUI::BuildReceiptPreviewText(
+            SessionId,
+            UiState
         )))
         .AutoWrapText(true);
 
@@ -528,7 +794,9 @@ TSharedRef<SDockTab> FCICADAForgeEditorModule::SpawnForgeTab(const FSpawnTabArgs
                             LastActionStatus,
                             EventLogStatus,
                             SessionMetadataStatus,
+                            ReceiptPreviewStatus,
                             EventLogLines,
+                            UiState,
                             SessionId,
                             SessionStarted
                         )
@@ -538,7 +806,16 @@ TSharedRef<SDockTab> FCICADAForgeEditorModule::SpawnForgeTab(const FSpawnTabArgs
                     .FillWidth(0.56f)
                     .Padding(0, 0, 8, 0)
                     [
-                        CICADAForgeEditorUI::MakeCentreWorkspace(Model)
+                        CICADAForgeEditorUI::MakeCentreWorkspace(
+                            Model,
+                            EventLogStatus,
+                            SessionMetadataStatus,
+                            ReceiptPreviewStatus,
+                            EventLogLines,
+                            UiState,
+                            SessionId,
+                            SessionStarted
+                        )
                     ]
 
                     + SHorizontalBox::Slot()
@@ -548,7 +825,8 @@ TSharedRef<SDockTab> FCICADAForgeEditorModule::SpawnForgeTab(const FSpawnTabArgs
                             Model,
                             SessionMetadataStatus,
                             LastActionStatus,
-                            EventLogStatus
+                            EventLogStatus,
+                            ReceiptPreviewStatus
                         )
                     ]
                 ]

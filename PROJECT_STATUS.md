@@ -10,15 +10,15 @@ Mainline.
 
 ## Current phase
 
-Phase Cluster 002I: Session metadata panel.
+Phase Cluster 002J: Evidence receipt cockpit.
 
 ## Completion
 
-Approximate overall project completion: 35 percent.
-Approximate V0 alpha completion: 32 percent.
+Approximate overall project completion: 40 percent.
+Approximate V0 alpha completion: 37 percent.
 Phases completed: 1 / 12.
 
-Phase 002 is not fully passed until the right-rail Session Metadata panel tracks local Forge session state.
+Phase 002 is now a larger cockpit cluster: actions, session metadata, event log, and memory-only evidence receipt preview.
 
 ## Working
 
@@ -33,52 +33,56 @@ Phase 002 is not fully passed until the right-rail Session Metadata panel tracks
 - Phase 002F added visible selected-action state under the buttons.
 - Phase 002G added mirrored Last Action status.
 - Phase 002H added an in-memory Event Log.
+- Phase 002I is assumed passed by user instruction.
 - Output logs are noisy but module rebuilds have succeeded.
 - The Unreal stale-binary fix is part of the installer/test cycle when C++ changes.
 - Persistent project state reads from `Config/CICADAForgeState.ini`.
 
-## Added in Phase 002I
+## Added in Phase 002J
 
-- Adds right-rail `Session Metadata` live status panel.
-- Generates a local session ID when the Forge tab opens.
-- Tracks session start time.
-- Tracks safe UI event count.
-- Tracks last action.
-- Session metadata is memory-only in this phase.
-- Button clicks continue updating:
-  - left selected-action text
-  - right Last Action text
-  - right Event Log
-  - Output Log safe stub line
-- Updates project phase config and evidence docs.
+- Adds right-rail `Evidence Receipt Preview`.
+- Adds centre `Evidence Receipt Controls`.
+- Adds memory-only evidence stub buttons:
+  - Screenshot observed
+  - Output log checked
+  - UI pass candidate
+- Adds system stub button:
+  - Clear visible event log
+- Adds shared mutable UI state object.
+- Tracks:
+  - total safe event count
+  - last action
+  - last evidence marker
+  - receipt readiness
+- Updates session metadata, event log, last action, and receipt preview from the same UI state.
+- Still no file writes, CAD export, sidecar calls, or machine commands.
 
 ## Not yet built
 
-- No persistent session save yet.
+- No persistent receipt save yet.
 - No editor settings UI yet.
 - No save/write-back to config yet.
 - No real project browser.
 - No feature graph runtime.
 - No CAD sidecar client.
 - No reimport/preview loop.
-- No evidence automation inside Unreal.
+- No automated screenshot capture.
 - No machine bridge.
 - No live camera bridge.
 
 ## Next action
 
-1. Apply Phase 002I patch.
+1. Apply Phase 002J patch.
 2. Commit and push:
-   `Phase 002I: Add Forge session metadata panel`
-3. Open Unreal and test the Forge tab.
-4. Click each left-rail action button.
-5. Confirm Session Metadata event count and last action update.
-6. Confirm Event Log still accumulates latest safe UI events.
-7. Confirm Output Log still contains safe stub click logs.
+   `Phase 002J: Add Forge evidence receipt cockpit`
+3. Test action buttons.
+4. Test evidence buttons.
+5. Confirm receipt preview updates.
+6. Confirm no file export, CAD call, sidecar call, or machine command occurs.
 
 ## Current risk
 
-The next likely failure is session metadata state captured by Slate button lambdas.
+The next likely failure is Slate lambda/shared-state compile syntax from bundling a larger UI cluster.
 
 If it fails, capture:
 - Unreal popup text

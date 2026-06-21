@@ -29,7 +29,8 @@ Sidecars handle exact manufacturing:
 - Phase 002F worked: visible selected-action state.
 - Phase 002G worked: mirrored Last Action status.
 - Phase 002H worked by user report: Event Log and Output Log show safe click events.
-- Current patch is Phase 002I: session metadata panel.
+- Phase 002I was assumed passed per user instruction.
+- Current patch is Phase 002J: evidence receipt cockpit.
 
 ## Standing CICADA app development workflow
 
@@ -88,15 +89,16 @@ Use truth-first engineering:
 
 ## Immediate next task for future assistant
 
-After Phase 002I is pushed, verify:
+After Phase 002J is pushed, verify:
 
 - `Config/CICADAForgeState.ini`
 - `Plugins/CICADAForge/Source/CICADAForgeEditor/Private/CICADAForgeEditorModule.cpp`
-- `docs/checklists/PHASE_002I_SMOKE_TEST.md`
+- `docs/checklists/PHASE_002J_SMOKE_TEST.md`
 
 Then ask the user for:
-- screenshot showing Session Metadata
-- event count after clicking buttons
-- whether Event Log and Output Log still update
+- screenshot showing Evidence Receipt Preview
+- whether evidence buttons update receipt state
+- whether action buttons still update Last Action/Event Log
+- whether Output Log still has safe stub click logs
 
-Do not move to Phase 002J until Session Metadata works.
+Do not move to Phase 002K until the larger evidence cockpit cluster works or the compile failure is understood.
