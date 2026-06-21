@@ -9,6 +9,7 @@ $paths = @(
     "BoxJobs",
     "STL",
     "Reports",
+    "RunReports",
     "PrintHandoff",
     "Receipts",
     "FeatureGraphs"

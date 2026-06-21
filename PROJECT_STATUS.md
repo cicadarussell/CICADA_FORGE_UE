@@ -10,21 +10,21 @@ Mainline cumulative patch.
 
 ## Current phase
 
-Phase Cluster 003F: STL preview and quality gate.
+Phase Cluster 003G: Headless forge control tower.
 
 ## Completion
 
-Approximate overall project completion: 81 percent.
-Approximate V0 alpha completion: 78 percent.
+Approximate overall project completion: 86 percent.
+Approximate V0 alpha completion: 83 percent.
 Phases completed: 4 / 12.
 
 ## Track verdict
 
-The project is still on track.
+The project is on track and now has a no-Unreal verification path.
 
 Current correct path:
 
-**editable box job -> STL -> mesh quality report -> manifest -> slicer/manual print**
+**headless full-check -> editable box job -> STL -> quality report -> manifest -> slicer/manual print**
 
 Do not jump to direct printer control yet.
 
@@ -38,35 +38,32 @@ Do not jump to direct printer control yet.
 - STL analyzer.
 - STL HTML report.
 - STL quality gate.
+- Headless control tower.
+- Run reports.
 - Artifact inventory.
 
-## Added in Phase 003F
+## Added in Phase 003G
 
-- STL analyzer:
-  `tools/cicada_stl_sidecar/cicada_stl_analyzer.py`
-- JSON stats output.
-- HTML report output.
-- SVG-ish box preview in the report.
-- Mesh stats:
-  - triangle count
-  - vertex count
-  - unique vertex count
-  - bounding box
-  - dimensions
-  - surface area
-  - volume estimate
-  - edge count
-  - boundary edge count
-  - non-manifold edge count
-- STL quality gate script.
-- one-shot custom box -> STL -> quality gate -> report script.
-- report folder added to artifact inventory.
+- Adds master no-Unreal control tower:
+  `tools/cicada_headless/cicada_forge_headless.py`
+- Adds master wrapper:
+  `scripts/cicada_forge.ps1`
+- Adds headless helper scripts.
+- Adds full-check command.
+- Adds doctor command.
+- Adds custom-box command.
+- Adds inventory command.
+- Adds manifest safety check.
+- Adds run reports under:
+  `Saved/CICADAForge/RunReports`
+- Updates on-track check.
+- Updates artifact inventory to include RunReports.
 
 ## Not yet built
 
-- Unreal UI button for analyze latest STL.
-- Unreal embedded STL preview.
-- binary STL parser.
+- Local dashboard/index page.
+- Unreal button for headless full-check.
+- Unreal embedded report view.
 - STEP export.
 - CAD sidecar client.
 - slicer CLI integration.
@@ -76,13 +73,14 @@ Do not jump to direct printer control yet.
 
 ## Next action
 
-1. Apply Phase 003F patch.
+1. Apply Phase 003G patch.
 2. Commit and push:
-   `Phase 003F: Add STL preview and quality gate`
-3. Run one-shot box/analyze/report.
-4. Inspect the HTML report.
+   `Phase 003G: Add headless forge control tower`
+3. Run:
+   `scripts/cicada_forge.ps1 -Command full-check -OpenReport`
+4. Stop opening Unreal for every pipeline check.
 5. Keep direct printer send locked.
 
 ## Current risk
 
-The analyzer currently targets ASCII STL, which matches the current CICADA exporter. Binary STL support is intentionally not built yet.
+The headless path is now stronger than the Unreal UI path. Next phase should either build a local dashboard over the headless outputs or connect Unreal buttons to headless scripts.

@@ -9,11 +9,11 @@ FCICADAForgeProjectState FCICADAForgeProjectState::MakeDefault()
 
     State.ProjectName = TEXT("CICADA_FORGE_UE");
     State.RepoPath = TEXT("C:\\CICADA\\CICADA_APPS\\CICADA_FORGE_UE");
-    State.CurrentPhase = TEXT("Phase 003F: STL preview and quality gate are alive");
-    State.EvidenceState = TEXT("Phase 002L is current on GitHub; Phase 003F is cumulative and adds mesh proof/reporting before any slicer or printer automation");
-    State.CadSidecarState = TEXT("STL mesh exporter V0 plus STL analyzer/report pipeline; exact CAD/STEP sidecar still not built");
-    State.MachineBridgeState = TEXT("Locked - local STL/manifest/report generation and manual slicer workflow only");
-    State.LastRunState = TEXT("Project remains on track: editable box jobs -> STL -> mesh report -> manifest -> slicer/manual print");
+    State.CurrentPhase = TEXT("Phase 003G: headless forge control tower is alive");
+    State.EvidenceState = TEXT("PowerShell evidence shows headless STL/job/report path works; Phase 003G reduces Unreal-open dependency and adds master diagnostics");
+    State.CadSidecarState = TEXT("STL mesh exporter + editable jobs + analyzer/report + headless control tower; exact CAD/STEP sidecar still not built");
+    State.MachineBridgeState = TEXT("Locked - headless local STL/manifest/report generation and manual slicer workflow only");
+    State.LastRunState = TEXT("Project is on track: no-Unreal test path now exists for doctor/full-check/demo/report/inventory");
     State.bMachineCommandsLocked = true;
 
     return State;

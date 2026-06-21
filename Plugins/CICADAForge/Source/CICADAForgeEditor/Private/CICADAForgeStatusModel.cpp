@@ -13,7 +13,7 @@ FCICADAForgeStatusModel FCICADAForgeStatusModel::MakeFromProjectState(const FCIC
 
     Model.BottomLog = FText::FromString(
         FString::Printf(
-            TEXT("LOG: Phase 003F STL preview and quality gate are live. Last run: %s"),
+            TEXT("LOG: Phase 003G headless forge control tower is live. Last run: %s"),
             *ProjectState.LastRunState
         )
     );
@@ -24,18 +24,18 @@ FCICADAForgeStatusModel FCICADAForgeStatusModel::MakeFromProjectState(const FCIC
     Model.ProjectActions.Add(NSLOCTEXT("CICADAForgeStatusModel", "ActionExportProof", "Export proof receipt"));
 
     Model.WorkspaceCards.Add(FCICADAForgePanelCard{
-        NSLOCTEXT("CICADAForgeStatusModel", "StlProofCardTitle", "STL Proof Gate"),
-        NSLOCTEXT("CICADAForgeStatusModel", "StlProofCardBody", "Phase 003F adds an STL analyzer, mesh quality gate, JSON stats, and HTML preview report. The goal is inspectable output before slicer automation.")
+        NSLOCTEXT("CICADAForgeStatusModel", "HeadlessCardTitle", "Headless Control Tower"),
+        NSLOCTEXT("CICADAForgeStatusModel", "HeadlessCardBody", "Phase 003G adds a no-Unreal master CLI for doctor/full-check/demo/report/inventory. The software can now prove the STL pipeline without opening the editor every time.")
     });
 
     Model.WorkspaceCards.Add(FCICADAForgePanelCard{
-        NSLOCTEXT("CICADAForgeStatusModel", "PreviewReportCardTitle", "Preview Report"),
-        NSLOCTEXT("CICADAForgeStatusModel", "PreviewReportCardBody", "Reports include triangle count, vertex count, bounding box, dimensions, surface area, volume estimate, edge manifold check, and a simple SVG preview.")
+        NSLOCTEXT("CICADAForgeStatusModel", "DebugCardTitle", "Debugging Tools"),
+        NSLOCTEXT("CICADAForgeStatusModel", "DebugCardBody", "New tools check repo state, file presence, Python tooling, artifacts, manifests, STL quality, reports, slicer discovery, and machine-safety locks.")
     });
 
     Model.WorkspaceCards.Add(FCICADAForgePanelCard{
-        NSLOCTEXT("CICADAForgeStatusModel", "PrinterSafetyCardTitle", "Printer Safety Boundary"),
-        NSLOCTEXT("CICADAForgeStatusModel", "PrinterSafetyCardBody", "Allowed: STL analysis, preview reports, manual slicer handoff. Blocked: serial ports, G-code streaming, direct printer send.")
+        NSLOCTEXT("CICADAForgeStatusModel", "SafetyCardTitle", "Automation Boundary"),
+        NSLOCTEXT("CICADAForgeStatusModel", "SafetyCardBody", "Allowed: headless STL generation, quality reports, manifests, inventory, local HTML dashboard. Blocked: serial ports, G-code streaming, direct printer send.")
     });
 
     Model.StatusCards.Add(FCICADAForgePanelCard{
@@ -59,10 +59,10 @@ FCICADAForgeStatusModel FCICADAForgeStatusModel::MakeFromProjectState(const FCIC
     });
 
     Model.StatusCards.Add(FCICADAForgePanelCard{
-        NSLOCTEXT("CICADAForgeStatusModel", "SafetyCardTitle", "Safety Boundary"),
+        NSLOCTEXT("CICADAForgeStatusModel", "BoundaryCardTitle", "Safety Boundary"),
         FText::FromString(
             ProjectState.bMachineCommandsLocked
-                ? TEXT("Machine commands are locked. STL proof/reporting is allowed; printer automation is not.")
+                ? TEXT("Machine commands are locked. Headless diagnostics are allowed; printer automation is not.")
                 : TEXT("WARNING: machine command lock is disabled.")
         )
     });

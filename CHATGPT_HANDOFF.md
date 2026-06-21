@@ -4,31 +4,40 @@
 
 CICADA_FORGE_UE / CICADA SINGULARITY
 
-## Current GitHub baseline
+## Current evidence from user PowerShell log
 
-As of the last verified read, GitHub was still at Phase 002L. Later 003B/003C/003D/003E/003F patches are cumulative local patch packages unless pushed by the user.
+The user applied many phases manually. Key outcomes:
+
+- Phase 002L audit passed after the missing ZIP issue was resolved.
+- Phase 003D project on-track check passed.
+- Example box jobs validated.
+- Box jobs generated STLs, manifests, and receipts.
+- Phase 003E custom editable job created and ran.
+- Phase 003F quality gate passed on an 80 x 40 x 12 demo box.
+- Reports were generated and direct printer send stayed locked.
 
 ## Current phase package
 
-Phase 003F: STL preview and quality gate.
+Phase 003G: Headless forge control tower.
 
 ## What this phase adds
 
-- STL analyzer.
-- STL quality gate.
-- JSON stats.
-- HTML report with SVG preview.
-- one-shot custom box -> STL -> report script.
+- No-Unreal master CLI:
+  `tools/cicada_headless/cicada_forge_headless.py`
+- PowerShell wrapper:
+  `scripts/cicada_forge.ps1`
+- Full-check, doctor, demo, custom-box, inventory, manifest-check, run-report.
+- Run reports under:
+  `Saved/CICADAForge/RunReports`
 
 ## Current useful path
 
-- Create/edit box job.
-- Generate STL.
+- Run headless full-check.
+- Generate editable/custom box STL.
 - Analyze STL.
-- Open report.
-- Generate print handoff manifest.
-- Open STL in slicer/default app.
-- Print manually.
+- Generate report.
+- Confirm manifest safety.
+- Open STL/report manually.
 
 ## Still blocked
 
@@ -40,6 +49,11 @@ Phase 003F: STL preview and quality gate.
 
 ## Next best phase
 
-003G should integrate analysis/report buttons back into the Unreal cockpit or start the CAD sidecar contract.
+003H: local dashboard/index page over headless artifacts.
+
+Suggested files:
+- `tools/cicada_dashboard/cicada_artifact_dashboard.py`
+- `scripts/open_cicada_dashboard.ps1`
+- dashboard HTML in `Saved/CICADAForge/Dashboard`
 
 Do not add direct printer sending.

@@ -9,9 +9,14 @@ $checks = [ordered]@{
     "Editor module C++" = "Plugins\CICADAForge\Source\CICADAForgeEditor\Private\CICADAForgeEditorModule.cpp"
     "State config" = "Config\CICADAForgeState.ini"
     "Box job runner" = "tools\cicada_stl_sidecar\cicada_box_job_runner.py"
+    "STL analyzer" = "tools\cicada_stl_sidecar\cicada_stl_analyzer.py"
+    "Headless control tower" = "tools\cicada_headless\cicada_forge_headless.py"
+    "Local box job editor" = "tools\cicada_job_editor\local_box_job_editor.html"
     "Box job examples" = "examples\box_jobs"
     "STL validation script" = "scripts\diagnostics\cicada_validate_latest_stl.ps1"
+    "STL quality gate" = "scripts\diagnostics\cicada_stl_quality_gate.ps1"
     "Printer safety contract" = "docs\debug\PRINT_HANDOFF_CONTRACT.md"
+    "Headless contract" = "docs\debug\HEADLESS_CONTROL_TOWER_CONTRACT.md"
 }
 
 $Failed = $false
@@ -29,6 +34,8 @@ foreach ($name in $checks.Keys) {
 Write-Host ""
 Write-Host "Safety boundaries:"
 Write-Host "  STL export: allowed"
+Write-Host "  STL quality reports: allowed"
+Write-Host "  Headless full-check: allowed"
 Write-Host "  Manual slicer handoff: allowed"
 Write-Host "  Direct printer send: locked"
 Write-Host "  Serial/G-code streaming: locked"
@@ -39,4 +46,4 @@ if ($Failed) {
 }
 
 Write-Host ""
-Write-Host "ON TRACK: current useful milestone is STL + locked print handoff, with CAD/STEP sidecar later."
+Write-Host "ON TRACK: no-Unreal diagnostic path exists; direct printer bridge remains locked."
